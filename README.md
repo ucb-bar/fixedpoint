@@ -15,8 +15,9 @@ Currently, this library works with [Chisel v3.5.6](https://github.com/chipsallia
 ## Usage
 
 Here is an example module using this library's FixedPoint type:
+
 ```scala
-import chisel3.{fromIntToBinaryPoint => _, fromDoubleToLiteral => _, _}
+import chisel3.{fromDoubleToLiteral => _, fromIntToBinaryPoint => _, _}
 import fixedpoint._
 
 class Example extends Module {
@@ -32,7 +33,9 @@ object ExampleApp extends App {
   println(stage.ChiselStage.emitSystemVerilog(new Example))
 }
 ```
+
 This outputs the following SystemVerilog code:
+
 ```systemverilog
 module Example(
   input         clock,
@@ -41,9 +44,9 @@ module Example(
   output [7:0]  out1,
   output [10:0] out2
 );
-  wire [8:0] _out1_T = {$signed(in), 1'h0}; // @[FixedPoint.scala 301:34]
+  wire [8:0] _out1_T = {$signed(in), 1'h0}; // @[Example.scala 9:8]
   assign out1 = _out1_T[7:0]; // @[Example.scala 9:8]
-  assign out2 = 11'sh324; // @[FixedPoint.scala 301:34]
+  assign out2 = 11'sh324; // @[Example.scala 10:22]
 endmodule
 ```  
 

@@ -18,11 +18,12 @@ import chisel3.{fromDoubleToLiteral => _, fromIntToBinaryPoint => _, _}
 import chisel3.experimental.BundleLiterals.AddBundleLiteralConstructor
 import chisel3.experimental.{AutoCloneType, OpaqueType}
 import chisel3.internal.firrtl.Width
-import chisel3.internal.sourceinfo.SourceInfo
+import chisel3.internal.sourceinfo.{SourceInfo, SourceInfoTransform, SourceInfoWhiteboxTransform}
 import chisel3.stage.ChiselStage
 import fixedpoint.shadow.{Mux, Mux1H, MuxCase, MuxLookup, PriorityMux}
 
 import scala.collection.immutable.SeqMap
+import scala.language.experimental.macros
 
 object FixedPoint extends NumObject {
 
@@ -84,7 +85,14 @@ object FixedPoint extends NumObject {
 
   /** Create a FixedPoint bundle with its data port connected to an SInt literal
     */
-  private[fixedpoint] def fromData(width: Width, binaryPoint: BinaryPoint, data: SInt): FixedPoint = {
+  private[fixedpoint] def fromData(
+    width:       Width,
+    binaryPoint: BinaryPoint,
+    data:        SInt
+  )(
+    implicit sourceInfo: SourceInfo,
+    compileOptions:      CompileOptions
+  ): FixedPoint = {
     val _new = Wire(FixedPoint(width, binaryPoint))
     _new.data := data
     _new
@@ -97,7 +105,12 @@ object FixedPoint extends NumObject {
 
   /** Align all FixedPoints in a (possibly heterogeneous) sequence by width and binary point
     */
-  private[fixedpoint] def dataAligned[T <: Data](in: Iterable[T]): Seq[T] = {
+  private[fixedpoint] def dataAligned[T <: Data](
+    in: Iterable[T]
+  )(
+    implicit sourceInfo: SourceInfo,
+    compileOptions:      CompileOptions
+  ): Seq[T] = {
 
     val bps = in.collect {
       case el: FixedPoint =>
@@ -129,7 +142,12 @@ object FixedPoint extends NumObject {
     out.toSeq
   }
 
-  private[fixedpoint] def dataAligned(in: FixedPoint*): Seq[FixedPoint] = dataAligned(in)
+  private[fixedpoint] def dataAligned(
+    in: FixedPoint*
+  )(
+    implicit sourceInfo: SourceInfo,
+    compileOptions:      CompileOptions
+  ): Seq[FixedPoint] = dataAligned(in)
 
   class ImplicitsCls private[fixedpoint] {
 
@@ -166,13 +184,21 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
     with HasBinaryPoint {
   private val data: SInt = SInt(width)
   val elements:     SeqMap[String, SInt] = SeqMap("" -> data)
-  def binaryPoint:  BinaryPoint = _inferredBinaryPoint
+
+  def binaryPoint: BinaryPoint = _inferredBinaryPoint
 
   private def requireKnownBP(message: => Any = "Unknown binary point is not supported in this operation"): Unit = {
     require(_inferredBinaryPoint.isInstanceOf[KnownBinaryPoint], message)
   }
 
-  private def additiveOp(that: FixedPoint, f: (SInt, SInt) => SInt, width: Width = Width()): FixedPoint = {
+  private def additiveOp(
+    that:  FixedPoint,
+    f:     (SInt, SInt) => SInt,
+    width: Width = Width()
+  )(
+    implicit sourceInfo: SourceInfo,
+    compileOptions:      CompileOptions
+  ): FixedPoint = {
     val Seq(_this, _that) = FixedPoint.dataAligned(this, that).map(WireDefault(_))
     FixedPoint.fromData(width, _inferredBinaryPoint.max(that._inferredBinaryPoint), f(_this.data, _that.data))
   }
@@ -210,6 +236,24 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
   override def do_-(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
     additiveOp(that, _ - _)
 
+  def do_+%(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
+    additiveOp(that, _ +% _)
+
+  def do_+&(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
+    additiveOp(that, _ +& _)
+
+  def do_-%(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
+    additiveOp(that, _ -% _)
+
+  def do_-&(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
+    additiveOp(that, _ -& _)
+
+  def do_unary_-(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
+    FixedPoint.fromData(width, _inferredBinaryPoint, -data)
+
+  def do_unary_-%(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
+    FixedPoint.fromData(width, _inferredBinaryPoint, data.unary_-%)
+
   override def do_*(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
     FixedPoint.fromData(Width(), _inferredBinaryPoint + that._inferredBinaryPoint, data * that.data)
 
@@ -234,33 +278,68 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
   override def do_abs(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
     FixedPoint.fromData(Width(), _inferredBinaryPoint, data.abs)
 
-  def +%(that: FixedPoint): FixedPoint = additiveOp(that, _ +% _)
-  def +&(that: FixedPoint): FixedPoint = additiveOp(that, _ +& _)
-  def -%(that: FixedPoint): FixedPoint = additiveOp(that, _ -% _)
-  def -&(that: FixedPoint): FixedPoint = additiveOp(that, _ -& _)
-  def unary_-  : FixedPoint = FixedPoint.fromData(width, _inferredBinaryPoint, -data)
-  def unary_-% : FixedPoint = FixedPoint.fromData(width, _inferredBinaryPoint, data.unary_-%)
-  def ===(that: FixedPoint): Bool = comparativeOp(that, _ === _)
-  def =/=(that: FixedPoint): Bool = comparativeOp(that, _ =/= _)
-  def !=(that:  FixedPoint): Bool = comparativeOp(that, _ =/= _)
+  def do_===(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): Bool =
+    comparativeOp(that, _ === _)
 
-  def >>(that: Int): FixedPoint =
+  def do_=/=(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): Bool =
+    comparativeOp(that, _ =/= _)
+
+  def do_!=(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): Bool =
+    comparativeOp(that, _ =/= _)
+
+  def do_>>(that: Int)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
     FixedPoint.fromData(Width(), _inferredBinaryPoint, (data >> that).asSInt)
-  def >>(that: BigInt): FixedPoint =
+
+  def do_>>(that: BigInt)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
     FixedPoint.fromData(Width(), _inferredBinaryPoint, (data >> that).asSInt)
-  def >>(that: UInt): FixedPoint =
+
+  def do_>>(that: UInt)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
     FixedPoint.fromData(Width(), _inferredBinaryPoint, (data >> that).asSInt)
-  def <<(that: Int): FixedPoint =
+
+  def do_<<(that: Int)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
     FixedPoint.fromData(Width(), _inferredBinaryPoint, (data << that).asSInt)
-  def <<(that: BigInt): FixedPoint =
+
+  def do_<<(that: BigInt)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
     FixedPoint.fromData(Width(), _inferredBinaryPoint, (data << that).asSInt)
-  def <<(that: UInt): FixedPoint =
+
+  def do_<<(that: UInt)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
     FixedPoint.fromData(Width(), _inferredBinaryPoint, (data << that).asSInt)
+
+  def +%(that: FixedPoint): FixedPoint = macro SourceInfoTransform.thatArg
+
+  def +&(that: FixedPoint): FixedPoint = macro SourceInfoTransform.thatArg
+
+  def -%(that: FixedPoint): FixedPoint = macro SourceInfoTransform.thatArg
+
+  def -&(that: FixedPoint): FixedPoint = macro SourceInfoTransform.thatArg
+
+  def unary_- : FixedPoint = macro SourceInfoTransform.noArg
+
+  def unary_-% : FixedPoint = macro SourceInfoTransform.noArg
+
+  def ===(that: FixedPoint): Bool = macro SourceInfoTransform.thatArg
+
+  def =/=(that: FixedPoint): Bool = macro SourceInfoTransform.thatArg
+
+  def !=(that: FixedPoint): Bool = macro SourceInfoTransform.thatArg
+
+  def >>(that: Int): FixedPoint = macro SourceInfoWhiteboxTransform.thatArg
+
+  def >>(that: BigInt): FixedPoint = macro SourceInfoWhiteboxTransform.thatArg
+
+  def >>(that: UInt): FixedPoint = macro SourceInfoWhiteboxTransform.thatArg
+
+  def <<(that: Int): FixedPoint = macro SourceInfoWhiteboxTransform.thatArg
+
+  def <<(that: BigInt): FixedPoint = macro SourceInfoWhiteboxTransform.thatArg
+
+  def <<(that: UInt): FixedPoint = macro SourceInfoWhiteboxTransform.thatArg
 
   override def connect(that: Data)(implicit sourceInfo: SourceInfo, connectCompileOptions: CompileOptions): Unit =
-    connectOp(that, _ := _)(sourceInfo, connectCompileOptions)
+    connectOp(that, _ := _)
+
   override def bulkConnect(that: Data)(implicit sourceInfo: SourceInfo, connectCompileOptions: CompileOptions): Unit =
-    connectOp(that, _ <> _)(sourceInfo, connectCompileOptions)
+    connectOp(that, _ <> _)
 
   override def connectFromBits(
     that: Bits
@@ -271,15 +350,22 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
     this.data := that.asSInt
   }
 
-  def apply(x:   BigInt): Bool = data.apply(x)
-  def apply(x:   Int):    Bool = data.apply(x)
-  def apply(x:   UInt): Bool = data.apply(x)
-  def apply(x:   Int, y: Int): UInt = data.apply(x, y)
-  def apply(x:   BigInt, y: BigInt): UInt = data.apply(x, y)
+  def apply(x: BigInt): Bool = data.apply(x)
+
+  def apply(x: Int): Bool = data.apply(x)
+
+  def apply(x: UInt): Bool = data.apply(x)
+
+  def apply(x: Int, y: Int): UInt = data.apply(x, y)
+
+  def apply(x: BigInt, y: BigInt): UInt = data.apply(x, y)
+
   def extract(x: BigInt): Bool = data.extract(x)
-  def extract(x: UInt):   Bool = data.extract(x)
+
+  def extract(x: UInt): Bool = data.extract(x)
 
   final def asSInt: SInt = data.asSInt
+
   final def asFixedPoint(binaryPoint: BinaryPoint): FixedPoint = {
     binaryPoint match {
       case KnownBinaryPoint(_) =>
@@ -291,15 +377,18 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
     }
   }
 
-  def setBinaryPoint(that: Int): FixedPoint = {
+  def do_setBinaryPoint(that: Int)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint = {
     _inferredBinaryPoint match {
       case KnownBinaryPoint(current) =>
         val diff = that - current
         FixedPoint.fromData(
           width + diff,
           that.BP,
-          (if (diff >= 0) { data << diff }
-           else { data >> -diff }).asSInt
+          (if (diff >= 0) {
+             data << diff
+           } else {
+             data >> -diff
+           }).asSInt
         )
       case UnknownBinaryPoint =>
         throw new ChiselException(
@@ -307,6 +396,8 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
         )
     }
   }
+
+  def setBinaryPoint(that: Int): FixedPoint = macro SourceInfoTransform.thatArg
 
   def widthKnown: Boolean = data.widthKnown
 
