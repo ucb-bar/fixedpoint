@@ -37,29 +37,29 @@ This outputs the following SystemVerilog code:
 module Example(
   input         clock,
   input         reset,
-  input  [7:0]  in_data,
-  output [7:0]  out1_data,
-  output [10:0] out2_data
+  input  [7:0]  in,
+  output [7:0]  out1,
+  output [10:0] out2
 );
-  wire [8:0] _out1_T = {$signed(in_data), 1'h0}; // @[FixedPoint.scala 295:34]
-  assign out1_data = _out1_T[7:0]; // @[ExampleApp.scala 9:8]
-  assign out2_data = 11'sh324; // @[FixedPoint.scala 295:34]
+  wire [8:0] _out1_T = {$signed(in), 1'h0}; // @[FixedPoint.scala 301:34]
+  assign out1 = _out1_T[7:0]; // @[Example.scala 9:8]
+  assign out2 = 11'sh324; // @[FixedPoint.scala 301:34]
 endmodule
 ```  
 
 ## How It Works
 
-FixedPoint is implemented as an extension of `Bundle`, which has one field named `data` of type `SInt`. Most of the arithmetic involving FixedPoints has been delegated to the `SInt` arithmetic of the `data` field, where shift operations are first used to align the data of FixedPoints that have different binary points. Connect methods have also been  overridden to account for data alignment of FixedPoints with different binary points, and to implement binary point inference.
+FixedPoint is implemented as an extension of `Record`, which has one *anonymous* data field of type `SInt`; it is also an [opaque type](https://github.com/chipsalliance/chisel/blob/v3.5.6/core/src/main/scala/chisel3/experimental/OpaqueType.scala). Most of the arithmetic involving FixedPoints has been delegated to the `SInt` arithmetic of the underlying data field, where shift operations are first used to align the data of FixedPoints that have different binary points. Connect methods have also been  overridden to account for data alignment of FixedPoints with different binary points, and to implement binary point inference.
 
 ## Limitations
 
 It was challenging to implement FixedPoint using Chisel's public API as some of the needed functionality for FixedPoints was originally implemented in Chisel's package-private objects, which cannot be accessed or altered from a user-level library. Due to this issue, some of the original FixedPoint functionality could not be implemented without limited workarounds. Here is the current list of limitations of this implementation of FixedPoint:
-* FixedPoints with different binary points are not aligned properly when used inside Chisel's Muxes (Mux, Mux1H, PriorityMux, MuxLookup, MuxCase). To that end, these objects have been redefined in the package `fixedpoint.shadow` to align FixedPoints by width and binary point before calling Chisel's corresponding Mux objects. In order to make FixedPoint work properly with Muxes, you have to import the new Mux definitions as follows:
+* FixedPoints with different binary points are not aligned properly when used inside Chisel's Muxes (`Mux`, `Mux1H`, `PriorityMux`, `MuxLookup`, `MuxCase`). To that end, these objects have been redefined in the package `fixedpoint.shadow` to align FixedPoints by width and binary point before calling Chisel's corresponding Mux objects. In order to make FixedPoint work properly with Muxes, you have to import the new Mux definitions as follows:
   ```scala
   import fixedpoint.shadow.{Mux, Mux1H, PriorityMux, MuxLookup, MuxCase}
   ```
-* Bundles with inferred widths cannot be used inside Mux1H. If you want to use FixedPoints inside a Mux1H, make sure that both width and binary point are specified in advance.
-* FixedPoints do not connect properly if they are nested inside a Bundle. If you have a bundle that has a FixedPoint field, you will have to extend it with the `ForceElementwiseConnect` trait. If you have a bundle `Foo` defined as:
+* Records with inferred widths cannot be used inside `Mux1H`. If you want to use FixedPoints inside a `Mux1H`, make sure that both width and binary point are specified in advance.
+* FixedPoints do not connect properly if they are nested inside a `Bundle` or `Record`. If you have a bundle/record that has a FixedPoint field, you will have to extend it with the `ForceElementwiseConnect` trait. If you have a bundle `Foo` defined as:
   ```scala
   class Foo extends Bundle {
     val data = FixedPoint(8.W, 4.BP)

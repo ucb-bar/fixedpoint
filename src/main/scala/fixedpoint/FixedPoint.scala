@@ -14,12 +14,15 @@
 
 package fixedpoint
 
-import chisel3.{fromIntToBinaryPoint => _, fromDoubleToLiteral => _, _}
+import chisel3.{fromDoubleToLiteral => _, fromIntToBinaryPoint => _, _}
 import chisel3.experimental.BundleLiterals.AddBundleLiteralConstructor
+import chisel3.experimental.{AutoCloneType, OpaqueType}
 import chisel3.internal.firrtl.Width
 import chisel3.internal.sourceinfo.SourceInfo
 import chisel3.stage.ChiselStage
 import fixedpoint.shadow.{Mux, Mux1H, MuxCase, MuxLookup, PriorityMux}
+
+import scala.collection.immutable.SeqMap
 
 object FixedPoint extends NumObject {
 
@@ -156,24 +159,27 @@ object FixedPoint extends NumObject {
 }
 
 sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferredBinaryPoint: BinaryPoint)
-    extends Bundle
+    extends Record
+    with AutoCloneType
+    with OpaqueType
     with Num[FixedPoint]
     with HasBinaryPoint {
-  val data:        SInt = SInt(width)
-  def binaryPoint: BinaryPoint = _inferredBinaryPoint
+  private val data: SInt = SInt(width)
+  val elements:     SeqMap[String, SInt] = SeqMap("" -> data)
+  def binaryPoint:  BinaryPoint = _inferredBinaryPoint
 
   private def requireKnownBP(message: => Any = "Unknown binary point is not supported in this operation"): Unit = {
     require(_inferredBinaryPoint.isInstanceOf[KnownBinaryPoint], message)
   }
 
   private def additiveOp(that: FixedPoint, f: (SInt, SInt) => SInt, width: Width = Width()): FixedPoint = {
-    val Seq(dis, dat) = FixedPoint.dataAligned(this, that)
-    FixedPoint.fromData(width, _inferredBinaryPoint.max(that._inferredBinaryPoint), f(dis.data, dat.data))
+    val Seq(_this, _that) = FixedPoint.dataAligned(this, that).map(WireDefault(_))
+    FixedPoint.fromData(width, _inferredBinaryPoint.max(that._inferredBinaryPoint), f(_this.data, _that.data))
   }
 
   private def comparativeOp(that: FixedPoint, f: (SInt, SInt) => Bool): Bool = {
-    val Seq(dis, dat) = FixedPoint.dataAligned(this, that)
-    WireDefault(f(dis.data, dat.data))
+    val Seq(_this, _that) = FixedPoint.dataAligned(this, that).map(WireDefault(_))
+    f(_this.data, _that.data)
   }
 
   private def connectOp(
@@ -315,13 +321,12 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
     litToDoubleOption match {
       case Some(value) => s"FixedPoint$width$binaryPoint($value)"
       case _           =>
-        // Can't use stringAccessor so will have to extract from data field's toString()...
-        val suffix = ".*?([(].*[)])".r.findFirstMatchIn(data.toString()) match {
+        // Can't use stringAccessor so will have to extract from data field's toString...
+        val suffix = ".*?([(].*[)])".r.findFirstMatchIn(data.toString) match {
           case Some(m) => m.group(1)
           case None    => ""
         }
         s"FixedPoint$width$binaryPoint$suffix"
     }
   }
-
 }

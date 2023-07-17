@@ -10,7 +10,7 @@
 
 package fixedpoint
 
-import chisel3.{Bundle, ChiselException, Num}
+import chisel3.{ChiselException, Num, Record}
 
 /** Chisel types that have binary points support retrieving
   * literal values as `Double` or `BigDecimal`
@@ -35,7 +35,7 @@ object NumBP {
 }
 
 trait HasBinaryPoint {
-  self: Bundle =>
+  self: Record =>
 
   def binaryPoint: BinaryPoint
 

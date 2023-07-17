@@ -161,7 +161,7 @@ class FixedPointSpec extends ChiselPropSpec with Utils {
   }
   property("Negative shift amounts are invalid") {
     a[ChiselException] should be thrownBy extractCause[ChiselException] {
-      ChiselStage.elaborate(new NegativeShift(FixedPoint(1.W, 0.BP).data))
+      ChiselStage.elaborate(new NegativeShift(FixedPoint(1.W, 0.BP).asSInt))
     }
   }
   property("Bit extraction on literals should work for all non-negative indices") {
