@@ -74,5 +74,7 @@ jobs:
         sudo make install
         verilator --version
     
+    - name: Check scalafmt
+      run: sbt scalafmtCheckAll
     - name: Run tests
       run: sbt test

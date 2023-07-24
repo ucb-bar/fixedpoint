@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
-
 import _root_.logger.Logger
 import chisel3._
 import chisel3.aop.Aspect
-import chisel3.stage.{ChiselGeneratorAnnotation, ChiselStage, NoRunFirrtlCompilerAnnotation, PrintFullStackTraceAnnotation}
+import chisel3.stage.{
+  ChiselGeneratorAnnotation,
+  ChiselStage,
+  NoRunFirrtlCompilerAnnotation,
+  PrintFullStackTraceAnnotation
+}
 import chisel3.testers._
 import firrtl.annotations.Annotation
 import firrtl.ir.Circuit
