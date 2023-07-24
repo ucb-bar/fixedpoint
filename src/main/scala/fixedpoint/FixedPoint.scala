@@ -9,7 +9,6 @@
 // and also to implement typeEquivalent fully
 // - Not being able to extend MonoConnect behavior makes it difficult to properly connect FixedPoints with
 // different BinaryPoints, especially if inside other Bundles and Vecs
-// - Can't inherit from Record & OpaqueType yet because dsptools's iotesters-based tests break
 // - Cannot Mux1H with aggregates with inferred widths
 
 package fixedpoint
@@ -80,25 +79,35 @@ object FixedPoint extends NumObject {
   }
 
   /** Create a FixedPoint port with specified width and binary position. */
-  def apply(value: BigInt, width: Width, binaryPoint: BinaryPoint): FixedPoint =
-    new FixedPoint(width, binaryPoint).Lit(_.data -> value.S(width))
+  def apply(value: BigInt, width: Width, binaryPoint: BinaryPoint): FixedPoint = {
+    val _width = if (width.known) width else (1 + value.bitLength).W
+    new FixedPoint(_width, binaryPoint).Lit(_.data -> value.S(_width))
+  }
 
   /** Create a FixedPoint bundle with its data port connected to an SInt literal
     */
   private[fixedpoint] def fromData(
-    width:       Width,
     binaryPoint: BinaryPoint,
-    data:        SInt
+    data:        SInt,
+    widthOption: Option[Width] = None
   )(
     implicit sourceInfo: SourceInfo,
     compileOptions:      CompileOptions
   ): FixedPoint = {
-    val _new = Wire(FixedPoint(width, binaryPoint))
+    val _new = Wire(
+      FixedPoint(
+        widthOption match {
+          case Some(width) => width
+          case None        => recreateWidth(data)
+        },
+        binaryPoint
+      )
+    )
     _new.data := data
     _new
   }
 
-  private def recreateWidth[T <: Data](d: T): Width = d.widthOption match {
+  private[fixedpoint] def recreateWidth[T <: Data](d: T): Width = d.widthOption match {
     case Some(w) => w.W
     case None    => Width()
   }
@@ -132,9 +141,9 @@ object FixedPoint extends NumObject {
         case el: FixedPoint =>
           val shift = maxBP.get - el.binaryPoint.get
           fromData(
-            maxWidth,
             maxBP,
-            (if (shift > 0) el.data << shift else el.data).asSInt
+            (if (shift > 0) el.data << shift else el.data).asSInt,
+            Some(maxWidth)
           ).asInstanceOf[T]
         case nonFp => nonFp
       }
@@ -193,14 +202,13 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
 
   private def additiveOp(
     that:  FixedPoint,
-    f:     (SInt, SInt) => SInt,
-    width: Width = Width()
+    f:     (SInt, SInt) => SInt
   )(
     implicit sourceInfo: SourceInfo,
     compileOptions:      CompileOptions
   ): FixedPoint = {
     val Seq(_this, _that) = FixedPoint.dataAligned(this, that).map(WireDefault(_))
-    FixedPoint.fromData(width, _inferredBinaryPoint.max(that._inferredBinaryPoint), f(_this.data, _that.data))
+    FixedPoint.fromData(_inferredBinaryPoint.max(that._inferredBinaryPoint), f(_this.data, _that.data))
   }
 
   private def comparativeOp(that: FixedPoint, f: (SInt, SInt) => Bool): Bool = {
@@ -249,13 +257,13 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
     additiveOp(that, _ -& _)
 
   def do_unary_-(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(width, _inferredBinaryPoint, -data)
+    FixedPoint.fromData(_inferredBinaryPoint, -data)
 
   def do_unary_-%(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(width, _inferredBinaryPoint, data.unary_-%)
+    FixedPoint.fromData(_inferredBinaryPoint, data.unary_-%)
 
   override def do_*(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(Width(), _inferredBinaryPoint + that._inferredBinaryPoint, data * that.data)
+    FixedPoint.fromData(_inferredBinaryPoint + that._inferredBinaryPoint, data * that.data)
 
   override def do_/(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
     throw new ChiselException(s"division is illegal on FixedPoint types")
@@ -276,7 +284,7 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
     comparativeOp(that, _ >= _)
 
   override def do_abs(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(Width(), _inferredBinaryPoint, data.abs)
+    FixedPoint.fromData(_inferredBinaryPoint, data.abs)
 
   def do_===(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): Bool =
     comparativeOp(that, _ === _)
@@ -288,22 +296,22 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
     comparativeOp(that, _ =/= _)
 
   def do_>>(that: Int)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(Width(), _inferredBinaryPoint, (data >> that).asSInt)
+    FixedPoint.fromData(_inferredBinaryPoint, (data >> that).asSInt)
 
   def do_>>(that: BigInt)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(Width(), _inferredBinaryPoint, (data >> that).asSInt)
+    FixedPoint.fromData(_inferredBinaryPoint, (data >> that).asSInt)
 
   def do_>>(that: UInt)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(Width(), _inferredBinaryPoint, (data >> that).asSInt)
+    FixedPoint.fromData(_inferredBinaryPoint, (data >> that).asSInt)
 
   def do_<<(that: Int)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(Width(), _inferredBinaryPoint, (data << that).asSInt)
+    FixedPoint.fromData(_inferredBinaryPoint, (data << that).asSInt)
 
   def do_<<(that: BigInt)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(Width(), _inferredBinaryPoint, (data << that).asSInt)
+    FixedPoint.fromData(_inferredBinaryPoint, (data << that).asSInt)
 
   def do_<<(that: UInt)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(Width(), _inferredBinaryPoint, (data << that).asSInt)
+    FixedPoint.fromData(_inferredBinaryPoint, (data << that).asSInt)
 
   def +%(that: FixedPoint): FixedPoint = macro SourceInfoTransform.thatArg
 
@@ -369,7 +377,7 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
   final def asFixedPoint(binaryPoint: BinaryPoint): FixedPoint = {
     binaryPoint match {
       case KnownBinaryPoint(_) =>
-        FixedPoint.fromData(width, binaryPoint, data)
+        FixedPoint.fromData(binaryPoint, data, Some(width))
       case UnknownBinaryPoint =>
         throw new ChiselException(
           s"cannot call $this.asFixedPoint(binaryPoint=$binaryPoint), you must specify a known binaryPoint"
@@ -382,13 +390,13 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
       case KnownBinaryPoint(current) =>
         val diff = that - current
         FixedPoint.fromData(
-          width + diff,
           that.BP,
           (if (diff >= 0) {
              data << diff
            } else {
              data >> -diff
-           }).asSInt
+           }).asSInt,
+          Some(width + diff)
         )
       case UnknownBinaryPoint =>
         throw new ChiselException(
