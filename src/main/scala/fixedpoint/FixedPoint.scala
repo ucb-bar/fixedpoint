@@ -201,8 +201,8 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
   }
 
   private def additiveOp(
-    that:  FixedPoint,
-    f:     (SInt, SInt) => SInt
+    that: FixedPoint,
+    f:    (SInt, SInt) => SInt
   )(
     implicit sourceInfo: SourceInfo,
     compileOptions:      CompileOptions

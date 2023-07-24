@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
-
-import chisel3.{Mux => _, _}
+import chisel3.{fromBigDecimalToLiteral => _, fromDoubleToLiteral => _, fromIntToBinaryPoint => _, Mux => _, _}
 import chisel3.internal.firrtl.Width
 import chisel3.stage.ChiselStage
 import chisel3.testers.BasicTester
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import fixedpoint.{BinaryPoint, FixedPoint, fromBigDecimalToLiteral, fromDoubleToLiteral, fromIntToBinaryPoint}
+import fixedpoint._
 import fixedpoint.shadow.Mux
 
 class FixedPointLiteralSpec extends AnyFlatSpec with Matchers {
@@ -132,6 +131,11 @@ class SBPTester extends BasicTester {
   assert(q.getWidth.U === 23.U)
 
   stop()
+}
+
+class NegativeShift(t: => Bits) extends Module {
+  val io = IO(new Bundle {})
+  Reg(t) >> -1
 }
 
 class FixedPointLitExtractTester extends BasicTester {
