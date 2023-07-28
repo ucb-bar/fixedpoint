@@ -8,14 +8,16 @@ scalacOptions ++= Seq(
   "-encoding", "UTF-8",
   "-feature",
   "-unchecked",
-//  "-Xfatal-warnings",
+  "-Xfatal-warnings",
   "-language:reflectiveCalls",
   "-Ymacro-annotations"
 )
-val chiselVersion = "3.5.6"
+val chiselVersion = "3.6.0"
 addCompilerPlugin("edu.berkeley.cs" %% "chisel3-plugin" % chiselVersion cross CrossVersion.full)
 libraryDependencies ++= Seq(
   "edu.berkeley.cs" %% "chisel3" % chiselVersion,
-  "org.scalatest" %% "scalatest" % "3.2.10" % "test",
+  "org.scalatest" %% "scalatest" % "3.2.15" % "test",
   "org.scalatestplus" %% "scalacheck-1-14" % "3.2.2.0" % "test",
 )
+
+Test / parallelExecution := false

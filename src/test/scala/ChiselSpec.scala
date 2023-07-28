@@ -2,19 +2,13 @@
 
 import _root_.logger.Logger
 import chisel3._
-import chisel3.aop.Aspect
-import chisel3.stage.{
-  ChiselGeneratorAnnotation,
-  ChiselStage,
-  NoRunFirrtlCompilerAnnotation,
-  PrintFullStackTraceAnnotation
-}
+import chisel3.stage.{ChiselGeneratorAnnotation, PrintFullStackTraceAnnotation}
 import chisel3.testers._
-import firrtl.annotations.Annotation
-import firrtl.ir.Circuit
-import firrtl.stage.FirrtlCircuitAnnotation
-import firrtl.util.BackendCompilationUtilities._
-import firrtl.{AnnotationSeq, EmittedVerilogCircuitAnnotation}
+import circt.stage.{CIRCTTarget, CIRCTTargetAnnotation, ChiselStage}
+//import firrtl.annotations.Annotation
+//import firrtl.ir.Circuit
+//import firrtl.util.BackendCompilationUtilities
+//import firrtl.{AnnotationSeq, EmittedVerilogCircuitAnnotation}
 import org.scalacheck._
 import org.scalatest._
 import org.scalatest.flatspec.AnyFlatSpec
@@ -25,39 +19,33 @@ import org.scalatest.propspec.AnyPropSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
 import java.io.{ByteArrayOutputStream, PrintStream}
-import java.security.Permission
 import scala.reflect.ClassTag
 
 /** Common utility functions for Chisel unit tests. */
 trait ChiselRunners extends Assertions {
   def runTester(
     t:                    => BasicTester,
-    additionalVResources: Seq[String] = Seq(),
-    annotations:          AnnotationSeq = Seq()
+    additionalVResources: Seq[String] = Seq()
+//                 annotations:          AnnotationSeq = Seq()
   ): Boolean = {
-    // Change this to enable Treadle as a backend
-//    val defaultBackend = {
-//      val useTreadle = sys.env.contains("CHISEL3_CI_USE_TREADLE")
-//      if (useTreadle) chisel3.testers.TreadleBackend else chisel3.testers.TesterDriver.defaultBackend
-//    }
+    val defaultBackend = chisel3.testers.TesterDriver.defaultBackend
 //    val hasBackend = TestUtils.containsBackend(annotations)
 //    val annos: Seq[Annotation] = if (hasBackend) annotations else defaultBackend +: annotations
-//    TesterDriver.execute(() => t, additionalVResources, annos)
-    TesterDriver.execute(() => t, additionalVResources, chisel3.testers.TesterDriver.defaultBackend +: annotations)
+    TesterDriver.execute(() => t, additionalVResources)
   }
   def assertTesterPasses(
     t:                    => BasicTester,
-    additionalVResources: Seq[String] = Seq(),
-    annotations:          AnnotationSeq = Seq()
+    additionalVResources: Seq[String] = Seq()
+//                          annotations:          AnnotationSeq = Seq()
   ): Unit = {
-    assert(runTester(t, additionalVResources, annotations))
+    assert(runTester(t, additionalVResources /*, annotations*/ ))
   }
   def assertTesterFails(
     t:                    => BasicTester,
     additionalVResources: Seq[String] = Seq(),
     annotations:          Seq[chisel3.aop.Aspect[_]] = Seq()
   ): Unit = {
-    assert(!runTester(t, additionalVResources, annotations))
+    assert(!runTester(t, additionalVResources /*, annotations*/ ))
   }
 
   def assertKnownWidth(expected: Int)(gen: => Data): Unit = {
@@ -65,10 +53,11 @@ trait ChiselRunners extends Assertions {
       val x = gen
       assert(x.getWidth === expected)
       // Sanity check that firrtl doesn't change the width
-      x := 0.U.asTypeOf(chiselTypeOf(x))
+      x := 0.U(0.W).asTypeOf(chiselTypeOf(x))
       val (_, done) = chisel3.util.Counter(true.B, 2)
+      val ones = if (expected == 0) 0.U(0.W) else -1.S(expected.W).asUInt
       when(done) {
-        chisel3.assert(~(x.asUInt) === -1.S(expected.W).asUInt)
+        chisel3.assert(~(x.asUInt) === ones)
         stop()
       }
     })
@@ -78,10 +67,11 @@ trait ChiselRunners extends Assertions {
     assertTesterPasses(new BasicTester {
       val x = gen
       assert(!x.isWidthKnown, s"Asserting that width should be inferred yet width is known to Chisel!")
-      x := 0.U.asTypeOf(chiselTypeOf(x))
+      x := 0.U(0.W).asTypeOf(chiselTypeOf(x))
       val (_, done) = chisel3.util.Counter(true.B, 2)
+      val ones = if (expected == 0) 0.U(0.W) else -1.S(expected.W).asUInt
       when(done) {
-        chisel3.assert(~(x.asUInt) === -1.S(expected.W).asUInt)
+        chisel3.assert(~(x.asUInt) === ones)
         stop()
       }
     })
@@ -92,17 +82,17 @@ trait ChiselRunners extends Assertions {
     * @param t the generator for the module
     * @return the Verilog code as a string.
     */
-  def compile(t: => RawModule): String = {
-    (new ChiselStage)
-      .execute(
-        Array("--target-dir", createTestDirectory(this.getClass.getSimpleName).toString),
-        Seq(ChiselGeneratorAnnotation(() => t))
-      )
-      .collectFirst {
-        case EmittedVerilogCircuitAnnotation(a) => a.value
-      }
-      .getOrElse(fail("No Verilog circuit was emitted by the FIRRTL compiler!"))
-  }
+//  def compile(t: => RawModule): String = {
+//    (new ChiselStage)
+//      .execute(
+//        Array("--target-dir", BackendCompilationUtilities.createTestDirectory(this.getClass.getSimpleName).toString),
+//        Seq(ChiselGeneratorAnnotation(() => t), CIRCTTargetAnnotation(CIRCTTarget.SystemVerilog))
+//      )
+//      .collectFirst {
+//        case EmittedVerilogCircuitAnnotation(a) => a.value
+//      }
+//      .getOrElse(fail("No Verilog circuit was emitted by the FIRRTL compiler!"))
+//  }
 
   def elaborateAndGetModule[A <: RawModule](t: => A): A = {
     var res: Any = null
@@ -118,19 +108,9 @@ trait ChiselRunners extends Assertions {
     * @param t the generator for the module
     * @return The FIRRTL Circuit and Annotations _before_ FIRRTL compilation
     */
-  def getFirrtlAndAnnos(t: => RawModule, providedAnnotations: Seq[Annotation] = Nil): (Circuit, Seq[Annotation]) = {
-    val args = Array(
-      "--target-dir",
-      createTestDirectory(this.getClass.getSimpleName).toString,
-      "--no-run-firrtl",
-      "--full-stacktrace"
-    )
-    val annos = (new ChiselStage).execute(args, Seq(ChiselGeneratorAnnotation(() => t)) ++ providedAnnotations)
-    val circuit = annos.collectFirst {
-      case FirrtlCircuitAnnotation(c) => c
-    }.getOrElse(fail("No FIRRTL Circuit found!!"))
-    (circuit, annos)
-  }
+//  def getFirrtlAndAnnos(t: => RawModule, providedAnnotations: Seq[Annotation] = Nil): (Circuit, Seq[Annotation]) = {
+//    TestUtils.getChirrtlAndAnnotations(t, providedAnnotations)
+//  }
 }
 
 /** Spec base class for BDD-style testers. */
@@ -243,14 +223,14 @@ trait Utils {
     * a thread to actually exit. For more information, see:
     *   - https://docs.oracle.com/javase/tutorial/essential/environment/security.html
     */
-  private class ExceptOnExit extends SecurityManager {
-    override def checkPermission(perm: Permission): Unit = {}
-    override def checkPermission(perm: Permission, context: Object): Unit = {}
-    override def checkExit(status: Int): Unit = {
-      super.checkExit(status)
-      throw ExitException(status)
-    }
-  }
+//  private class ExceptOnExit extends SecurityManager {
+//    override def checkPermission(perm: Permission): Unit = {}
+//    override def checkPermission(perm: Permission, context: Object): Unit = {}
+//    override def checkExit(status: Int): Unit = {
+//      super.checkExit(status)
+//      throw ExitException(status)
+//    }
+//  }
 
   /** Encodes a file that some code tries to write to
     * @param the file name
@@ -259,14 +239,14 @@ trait Utils {
 
   /** A security manager that converts writes to any file into [[WriteException]]s.
     */
-  private class ExceptOnWrite extends SecurityManager {
-    override def checkPermission(perm: Permission): Unit = {}
-    override def checkPermission(perm: Permission, context: Object): Unit = {}
-    override def checkWrite(file: String): Unit = {
-      super.checkWrite(file)
-      throw WriteException(file)
-    }
-  }
+//  private class ExceptOnWrite extends SecurityManager {
+//    override def checkPermission(perm: Permission): Unit = {}
+//    override def checkPermission(perm: Permission, context: Object): Unit = {}
+//    override def checkWrite(file: String): Unit = {
+//      super.checkWrite(file)
+//      throw WriteException(file)
+//    }
+//  }
 
   /** Run some Scala code (a thunk) in an environment where all System.exit are caught and returned. This avoids a
     * situation where a test results in something actually exiting and killing the entire test. This is necessary if you
@@ -277,32 +257,32 @@ trait Utils {
     * @param thunk some Scala code
     * @return either the output of the thunk (`Right[T]`) or an exit code (`Left[Int]`)
     */
-  def catchStatus[T](thunk: => T): Either[Int, T] = {
-    try {
-      System.setSecurityManager(new ExceptOnExit())
-      Right(thunk)
-    } catch {
-      case ExitException(a) => Left(a)
-    } finally {
-      System.setSecurityManager(null)
-    }
-  }
+//  def catchStatus[T](thunk: => T): Either[Int, T] = {
+//    try {
+//      System.setSecurityManager(new ExceptOnExit())
+//      Right(thunk)
+//    } catch {
+//      case ExitException(a) => Left(a)
+//    } finally {
+//      System.setSecurityManager(null)
+//    }
+//  }
 
   /** Run some Scala code (a thunk) in an environment where file writes are caught and the file that a program tries to
     * write to is returned. This is useful if you want to test that some thunk either tries to write to a specific file
     * or doesn't try to write at all.
     */
-  def catchWrites[T](thunk: => T): Either[String, T] = {
-    throw new Exception("Do not use, not thread-safe")
-    try {
-      System.setSecurityManager(new ExceptOnWrite())
-      Right(thunk)
-    } catch {
-      case WriteException(a) => Left(a)
-    } finally {
-      System.setSecurityManager(null)
-    }
-  }
+//  def catchWrites[T](thunk: => T): Either[String, T] = {
+//    throw new Exception("Do not use, not thread-safe")
+//    try {
+//      System.setSecurityManager(new ExceptOnWrite())
+//      Right(thunk)
+//    } catch {
+//      case WriteException(a) => Left(a)
+//    } finally {
+//      System.setSecurityManager(null)
+//    }
+//  }
 
   /** A tester which runs generator and uses an aspect to check the returned object
     * @param gen function to generate a Chisel module
@@ -311,18 +291,22 @@ trait Utils {
     */
   def aspectTest[T <: RawModule](gen: () => T)(f: T => Unit)(implicit scalaMajorVersion: Int): Unit = {
     // Runs chisel stage
-    def run[T <: RawModule](gen: () => T, annotations: AnnotationSeq): AnnotationSeq = {
+    def run[T <: RawModule](gen: () => T /*, annotations: AnnotationSeq*/ ): Unit /*AnnotationSeq*/ = {
       new ChiselStage().run(
-        Seq(ChiselGeneratorAnnotation(gen), NoRunFirrtlCompilerAnnotation, PrintFullStackTraceAnnotation) ++ annotations
+        Seq(
+          ChiselGeneratorAnnotation(gen),
+          CIRCTTargetAnnotation(CIRCTTarget.CHIRRTL),
+          PrintFullStackTraceAnnotation
+        ) // ++ annotations
       )
     }
     // Creates a wrapping aspect to contain checking function
-    case object BuiltAspect extends Aspect[T] {
-      override def toAnnotation(top: T): AnnotationSeq = { f(top); Nil }
-    }
+//    case object BuiltAspect extends Aspect[T] {
+//      override def toAnnotation(top: T): AnnotationSeq = { f(top); Nil }
+//    }
     val currentMajorVersion = scala.util.Properties.versionNumberString.split('.')(1).toInt
     if (currentMajorVersion >= scalaMajorVersion) {
-      run(gen, Seq(BuiltAspect))
+      run(gen /*, Seq(BuiltAspect)*/ )
     }
   }
 

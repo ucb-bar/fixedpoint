@@ -6,7 +6,7 @@
 package fixedpoint
 
 import chisel3.{ChiselException, CompileOptions, Data, DontCare, Record}
-import chisel3.internal.sourceinfo.SourceInfo
+import chisel3.experimental.SourceInfo
 
 import scala.reflect.ClassTag
 
