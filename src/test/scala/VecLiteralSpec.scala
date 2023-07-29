@@ -20,7 +20,7 @@ class VecLiteralSpec extends ChiselFreeSpec with Utils {
 
         vecWire1 := vecLit1
         vecWire1 := vecLit2
-        printf("vw1(0) %x  vw1(1) %x\n", vecWire1(0).asUInt(), vecWire1(1).asUInt())
+        printf("vw1(0) %x  vw1(1) %x\n", vecWire1(0).asUInt, vecWire1(1).asUInt)
         chisel3.assert(vecWire1(0) === (1.5).F(8.W, 4.BP))
         chisel3.assert(vecWire1(1) === (3.25).F(8.W, 4.BP))
         stop()
@@ -41,7 +41,7 @@ class VecLiteralSpec extends ChiselFreeSpec with Utils {
         vecWire1 := vecLit1
         vecWire2 := vecLit2
         vecWire1(1) := (0.5).F(8.W, 4.BP)
-        printf("vw1(0) %x  vw1(1) %x\n", vecWire1(0).asUInt(), vecWire1(1).asUInt())
+        printf("vw1(0) %x  vw1(1) %x\n", vecWire1(0).asUInt, vecWire1(1).asUInt)
         chisel3.assert(vecWire1(0) === (1.5).F(8.W, 4.BP))
         chisel3.assert(vecWire1(1) === (0.5).F(8.W, 4.BP)) // Last connect won
         chisel3.assert(vecWire2(1) === (3.25).F(8.W, 4.BP))

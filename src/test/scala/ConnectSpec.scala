@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import chisel3.experimental.Analog
-import chisel3.stage.ChiselStage
+import circt.stage.ChiselStage
 import chisel3.testers.BasicTester
 import chisel3.{fromDoubleToLiteral => _, fromIntToBinaryPoint => _, _}
 import fixedpoint._

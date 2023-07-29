@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import chisel3.{fromBigDecimalToLiteral => _, fromDoubleToLiteral => _, fromIntToBinaryPoint => _, Mux => _, _}
-import chisel3.internal.firrtl.Width
-import chisel3.stage.ChiselStage
+import chisel3.internal.firrtl.UnknownWidth
+import circt.stage.ChiselStage
 import chisel3.testers.BasicTester
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
+import chisel3.{Mux => _, fromBigDecimalToLiteral => _, fromDoubleToLiteral => _, fromIntToBinaryPoint => _, _}
 import fixedpoint._
 import fixedpoint.shadow.Mux
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 class FixedPointLiteralSpec extends AnyFlatSpec with Matchers {
   behavior.of("fixed point utilities")
@@ -69,17 +69,17 @@ class FixedPointFromBitsTester extends BasicTester {
   assert(sintToFp === sint_result)
   assert(fpToFp === fp_result)
 
-  assert(positivefp.abs() === positivefp)
-  assert(negativefp.abs() === positivefp)
-  assert(negativefp.abs() =/= negativefp)
+  assert(positivefp.abs === positivefp)
+  assert(negativefp.abs === positivefp)
+  assert(negativefp.abs =/= negativefp)
 
   val f1bp5 = 1.5.F(1.BP)
   val f6bp0 = 6.0.F(0.BP)
   val f6bp2 = 6.0.F(2.BP)
 
-  val f1bp5shiftleft2 = Wire(FixedPoint(Width(), BinaryPoint()))
-  val f6bp0shiftright2 = Wire(FixedPoint(Width(), BinaryPoint()))
-  val f6bp2shiftright2 = Wire(FixedPoint(Width(), BinaryPoint()))
+  val f1bp5shiftleft2 = Wire(FixedPoint(UnknownWidth(), BinaryPoint()))
+  val f6bp0shiftright2 = Wire(FixedPoint(UnknownWidth(), BinaryPoint()))
+  val f6bp2shiftright2 = Wire(FixedPoint(UnknownWidth(), BinaryPoint()))
 
   f1bp5shiftleft2 := f1bp5 << 2
   f6bp0shiftright2 := f6bp0 >> 2

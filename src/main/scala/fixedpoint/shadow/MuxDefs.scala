@@ -5,7 +5,7 @@
 
 package fixedpoint.shadow
 
-import chisel3.{Bits, Bool, Data, SourceInfoDoc, UInt}
+import chisel3.{Bits, Bool, Data, EnumType, SourceInfoDoc, UInt}
 
 object Mux extends SourceInfoDoc {
   def apply[T <: Data](cond: Bool, con: T, alt: T): T = {
@@ -39,7 +39,7 @@ object PriorityMux {
   def apply[T <: Data](sel: Seq[Bool], in: Seq[T]): T = chisel3.util.PriorityMux(sel, Util.processArgs(in))
   def apply[T <: Data](sel: Bits, in: Seq[T]): T = chisel3.util.PriorityMux(sel, in)
 }
-//
+
 ///** Creates a cascade of n Muxs to search for a key value.
 // *
 // * @example {{{
@@ -54,12 +54,17 @@ object MuxLookup {
     * @param mapping a sequence to search of keys and values
     * @return the value found or the default if not
     */
-  def apply[S <: UInt, T <: Data](key: S, default: T, mapping: Seq[(S, T)]): T = {
+  def apply[T <: Data](key: UInt, default: T)(mapping: Seq[(UInt, T)]): T = {
     val (proc_default, proc_mapping) = Util.processArgs(default, mapping)
-    chisel3.util.MuxLookup(key, proc_default, proc_mapping)
+    chisel3.util.MuxLookup(key, proc_default)(proc_mapping)
+  }
+
+  def apply[S <: EnumType, T <: Data](key: S, default: T)(mapping: Seq[(S, T)]): T = {
+    val (proc_default, proc_mapping) = Util.processArgs(default, mapping)
+    chisel3.util.MuxLookup(key, proc_default)(proc_mapping)
   }
 }
-//
+
 ///** Given an association of values to enable signals, returns the first value with an associated
 // * high enable signal.
 // *

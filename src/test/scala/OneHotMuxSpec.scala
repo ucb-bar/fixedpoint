@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import chisel3.internal.ChiselException
+import chisel3.ChiselException
 import chisel3.testers.BasicTester
 import chisel3.{fromDoubleToLiteral => _, fromIntToBinaryPoint => _, _}
 import fixedpoint._
@@ -113,7 +113,7 @@ class ParameterizedAggregateOneHotTester extends BasicTester {
     val dut = Module(new ParameterizedAggregateOneHot(Agg1, new Agg1))
     dut.io.selectors := (1 << i).U(4.W).asBools
 
-    assert(dut.io.out.asUInt() === values(i).asUInt())
+    assert(dut.io.out.asUInt === values(i).asUInt)
   }
 
   stop()

@@ -15,11 +15,10 @@ package fixedpoint
 
 import chisel3.{fromDoubleToLiteral => _, fromIntToBinaryPoint => _, _}
 import chisel3.experimental.BundleLiterals.AddBundleLiteralConstructor
-import chisel3.experimental.{AutoCloneType, OpaqueType}
-import chisel3.internal.firrtl.Width
-import chisel3.internal.sourceinfo.{SourceInfo, SourceInfoTransform, SourceInfoWhiteboxTransform}
-import chisel3.stage.ChiselStage
-import fixedpoint.shadow.{Mux, Mux1H, MuxCase, MuxLookup, PriorityMux}
+import chisel3.experimental.OpaqueType
+import chisel3.internal.firrtl.{KnownWidth, UnknownWidth, Width}
+import chisel3.experimental.SourceInfo
+import chisel3.internal.sourceinfo.{SourceInfoTransform, SourceInfoWhiteboxTransform}
 
 import scala.collection.immutable.SeqMap
 import scala.language.experimental.macros
@@ -27,7 +26,7 @@ import scala.language.experimental.macros
 object FixedPoint extends NumObject {
 
   /** Create a FixedPoint type with inferred width. */
-  def apply(): FixedPoint = apply(Width(), BinaryPoint())
+  def apply(): FixedPoint = apply(UnknownWidth(), BinaryPoint())
 
   /** Create a FixedPoint type or port with fixed width. */
   def apply(width: Width, binaryPoint: BinaryPoint): FixedPoint = new FixedPoint(width, binaryPoint)
@@ -43,7 +42,7 @@ object FixedPoint extends NumObject {
     * Use PrivateObject to force users to specify width and binaryPoint by name
     */
   def fromBigInt(value: BigInt, binaryPoint: BinaryPoint = 0.BP): FixedPoint = {
-    apply(value, Width(), binaryPoint)
+    apply(value, UnknownWidth(), binaryPoint)
   }
 
   /** Create a FixedPoint literal with inferred width from BigInt.
@@ -51,9 +50,9 @@ object FixedPoint extends NumObject {
     */
   def fromBigInt(value: BigInt, width: Int, binaryPoint: Int): FixedPoint =
     if (width == -1) {
-      apply(value, Width(), BinaryPoint(binaryPoint))
+      apply(value, UnknownWidth(), BinaryPoint(binaryPoint))
     } else {
-      apply(value, Width(width), BinaryPoint(binaryPoint))
+      apply(value, KnownWidth(width), BinaryPoint(binaryPoint))
     }
 
   /** Create a FixedPoint literal with inferred width from Double.
@@ -109,7 +108,7 @@ object FixedPoint extends NumObject {
 
   private[fixedpoint] def recreateWidth[T <: Data](d: T): Width = d.widthOption match {
     case Some(w) => w.W
-    case None    => Width()
+    case None    => UnknownWidth()
   }
 
   /** Align all FixedPoints in a (possibly heterogeneous) sequence by width and binary point
@@ -162,7 +161,7 @@ object FixedPoint extends NumObject {
 
     implicit class fromDoubleToLiteral(double: Double) {
       def F(binaryPoint: BinaryPoint): FixedPoint = {
-        FixedPoint.fromDouble(double, Width(), binaryPoint)
+        FixedPoint.fromDouble(double, UnknownWidth(), binaryPoint)
       }
 
       def F(width: Width, binaryPoint: BinaryPoint): FixedPoint = {
@@ -172,7 +171,7 @@ object FixedPoint extends NumObject {
 
     implicit class fromBigDecimalToLiteral(bigDecimal: BigDecimal) {
       def F(binaryPoint: BinaryPoint): FixedPoint = {
-        FixedPoint.fromBigDecimal(bigDecimal, Width(), binaryPoint)
+        FixedPoint.fromBigDecimal(bigDecimal, UnknownWidth(), binaryPoint)
       }
 
       def F(width: Width, binaryPoint: BinaryPoint): FixedPoint = {
@@ -187,7 +186,6 @@ object FixedPoint extends NumObject {
 
 sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferredBinaryPoint: BinaryPoint)
     extends Record
-    with AutoCloneType
     with OpaqueType
     with Num[FixedPoint]
     with HasBinaryPoint {
@@ -195,6 +193,8 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
   val elements:     SeqMap[String, SInt] = SeqMap("" -> data)
 
   def binaryPoint: BinaryPoint = _inferredBinaryPoint
+
+  override def litValue: BigInt = data.litValue
 
   private def requireKnownBP(message: => Any = "Unknown binary point is not supported in this operation"): Unit = {
     require(_inferredBinaryPoint.isInstanceOf[KnownBinaryPoint], message)
