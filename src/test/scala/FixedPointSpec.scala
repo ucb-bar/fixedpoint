@@ -153,6 +153,30 @@ class FixedPointLitExtractTester extends BasicTester {
   stop()
 }
 
+class FixedPointFloorTester extends BasicTester {
+  assert(-4.75.F(8.W, 2.BP).floor === -5.0.F(8.W, 2.BP))
+  assert(55.5.F(8.W, 2.BP).floor === 55.0.F(8.W, 2.BP))
+  assert(-4.0.F(2.BP).floor === -4.0.F(2.BP))
+  assert(0.125.F(8.W, 4.BP).floor === 0.0.F(8.W, 4.BP))
+  stop()
+}
+
+class FixedPointCeilTester extends BasicTester {
+  assert(-4.75.F(8.W, 2.BP).ceil === -4.0.F(8.W, 2.BP))
+  assert(55.5.F(8.W, 2.BP).ceil === 56.0.F(8.W, 2.BP))
+  assert(-4.0.F(2.BP).ceil === -4.0.F(2.BP))
+  assert(0.125.F(8.W, 4.BP).ceil === 1.0.F(8.W, 4.BP))
+  stop()
+}
+
+class FixedPointRoundTester extends BasicTester {
+  assert(-4.75.F(8.W, 2.BP).round === -5.0.F(8.W, 2.BP))
+  assert(25.5.F(8.W, 2.BP).round === 26.0.F(8.W, 2.BP))
+  assert(-4.0.F(2.BP).round === -4.0.F(2.BP))
+  assert(0.125.F(8.W, 3.BP).round === 0.0.F(8.W, 3.BP))
+  stop()
+}
+
 class FixedPointSpec extends ChiselPropSpec with Utils {
   property("should allow set binary point") {
     assertTesterPasses { new SBPTester }
@@ -171,4 +195,17 @@ class FixedPointSpec extends ChiselPropSpec with Utils {
   property("Bit extraction on literals should work for all non-negative indices") {
     assertTesterPasses(new FixedPointLitExtractTester)
   }
+
+  property("Floor operation works") {
+    assertTesterPasses { new FixedPointFloorTester }
+  }
+
+  property("Ceil operation works") {
+    assertTesterPasses { new FixedPointCeilTester }
+  }
+
+  property("Round operation works") {
+    assertTesterPasses { new FixedPointRoundTester }
+  }
+
 }
