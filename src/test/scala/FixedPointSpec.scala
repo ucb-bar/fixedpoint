@@ -158,6 +158,7 @@ class FixedPointFloorTester extends BasicTester {
   assert(55.5.F(8.W, 2.BP).floor === 55.0.F(8.W, 2.BP))
   assert(-4.0.F(2.BP).floor === -4.0.F(2.BP))
   assert(0.125.F(8.W, 4.BP).floor === 0.0.F(8.W, 4.BP))
+  assert(3.0.F(0.BP).floor === 3.0.F(0.BP))
   stop()
 }
 
@@ -166,6 +167,7 @@ class FixedPointCeilTester extends BasicTester {
   assert(55.5.F(8.W, 2.BP).ceil === 56.0.F(8.W, 2.BP))
   assert(-4.0.F(2.BP).ceil === -4.0.F(2.BP))
   assert(0.125.F(8.W, 4.BP).ceil === 1.0.F(8.W, 4.BP))
+  assert(3.0.F(0.BP).ceil === 3.0.F(0.BP))
   stop()
 }
 
@@ -174,6 +176,7 @@ class FixedPointRoundTester extends BasicTester {
   assert(25.5.F(8.W, 2.BP).round === 26.0.F(8.W, 2.BP))
   assert(-4.0.F(2.BP).round === -4.0.F(2.BP))
   assert(0.125.F(8.W, 3.BP).round === 0.0.F(8.W, 3.BP))
+  assert(3.0.F(0.BP).round === 3.0.F(0.BP))
   stop()
 }
 

@@ -303,7 +303,7 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
   def do_round(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint = {
     requireKnownBP()
     // Add 0.5 to the number and then floor it
-    (this + 0.5.F(binaryPoint)).floor
+    (this + 0.5.F(1.BP)).floor.setBinaryPoint(binaryPoint.get)
   }
 
   def do_===(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): Bool =
@@ -417,11 +417,9 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
         val diff = that - current
         FixedPoint.fromData(
           that.BP,
-          (if (diff >= 0) {
-             data << diff
-           } else {
-             data >> -diff
-           }).asSInt,
+          (if (diff > 0) data << diff
+           else if (diff < 0) data >> -diff
+           else data).asSInt,
           Some(width + diff)
         )
       case UnknownBinaryPoint =>
