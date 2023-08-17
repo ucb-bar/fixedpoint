@@ -6,7 +6,7 @@
 // - UnknownBinaryPoint
 // - HasBinaryPoint
 //
-// HasBinaryPoint uses Bundle as a self-type as opposed to Bits used in Chisel's code.
+// HasBinaryPoint uses Record as a self-type as opposed to Bits used in Chisel's code.
 
 package fixedpoint
 

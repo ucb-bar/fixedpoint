@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // This file contains the definitions of FixedPoint class and companion object. Much of Chisel's original code
-// is reused, but Bundle is inherited from instead of Bits. Relevant methods from Bits and Chisel's FixedPoint
+// is reused, but Record is inherited from instead of Bits. Relevant methods from Bits and Chisel's FixedPoint
 // have also been implemented in order to maximally replicate the original FixedPoint interface.
 
 // Notes:
@@ -195,8 +195,6 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
 
   def binaryPoint: BinaryPoint = _inferredBinaryPoint
 
-  override def litValue: BigInt = data.litValue
-
   private def requireKnownBP(message: => Any = "Unknown binary point is not supported in this operation"): Unit = {
     require(_inferredBinaryPoint.isInstanceOf[KnownBinaryPoint], message)
   }
@@ -287,6 +285,27 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
   override def do_abs(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
     FixedPoint.fromData(_inferredBinaryPoint, data.abs)
 
+  def do_floor(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint = {
+    requireKnownBP()
+    // Set the fractional part to zeroes
+    val floored = Cat(data >> binaryPoint.get, 0.U(binaryPoint.get.W)).asSInt
+    FixedPoint.fromData(binaryPoint, floored)
+  }
+
+  def do_ceil(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint = {
+    requireKnownBP()
+    // Get a number with the fractional part set to ones
+    val almostOne = ((1 << binaryPoint.get) - 1).U(width)
+    // Add it to the number and floor it
+    (this + FixedPoint.fromData(binaryPoint, almostOne.asSInt)).floor
+  }
+
+  def do_round(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint = {
+    requireKnownBP()
+    // Add 0.5 to the number and then floor it
+    (this + 0.5.F(binaryPoint)).floor
+  }
+
   def do_===(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): Bool =
     comparativeOp(that, _ === _)
 
@@ -325,6 +344,12 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
   def unary_- : FixedPoint = macro SourceInfoTransform.noArg
 
   def unary_-% : FixedPoint = macro SourceInfoTransform.noArg
+
+  def floor: FixedPoint = macro SourceInfoTransform.noArg
+
+  def ceil: FixedPoint = macro SourceInfoTransform.noArg
+
+  def round: FixedPoint = macro SourceInfoTransform.noArg
 
   def ===(that: FixedPoint): Bool = macro SourceInfoTransform.thatArg
 
@@ -417,6 +442,8 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
 
   override def litOption: Option[BigInt] = data.litOption
 
+  override def litValue: BigInt = data.litValue
+
   override def toString: String = {
     litToDoubleOption match {
       case Some(value) => s"FixedPoint$width$binaryPoint($value)"
@@ -428,26 +455,5 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
         }
         s"FixedPoint$width$binaryPoint$suffix"
     }
-  }
-
-  def floor: FixedPoint = {
-    requireKnownBP()
-    // Set the fractional part to zeroes
-    val floored = Cat(data >> binaryPoint.get, 0.U(binaryPoint.get.W)).asSInt
-    FixedPoint.fromData(binaryPoint, floored)
-  }
-
-  def ceil: FixedPoint = {
-    requireKnownBP()
-    // Get a number with the fractional part set to ones
-    val almostOne = ((1 << binaryPoint.get) - 1).U(width)
-    // Add it to the number and floor it
-    (this + FixedPoint.fromData(binaryPoint, almostOne.asSInt)).floor
-  }
-
-  def round: FixedPoint = {
-    requireKnownBP()
-    // Add 0.5 to the number and then floor it
-    (this + 0.5.F(binaryPoint)).floor
   }
 }
