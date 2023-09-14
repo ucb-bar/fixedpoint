@@ -184,6 +184,7 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
     with OpaqueType
     with Num[FixedPoint]
     with HasBinaryPoint {
+  if (binaryPoint.known) require(binaryPoint.get >= 0, "Negative binary point is not supported")
   private val data: SInt = SInt(width)
   val elements:     SeqMap[String, SInt] = SeqMap("" -> data)
 
@@ -282,22 +283,24 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
   def do_floor(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint = {
     requireKnownBP()
     // Set the fractional part to zeroes
-    val floored = Cat(data >> binaryPoint.get, 0.U(binaryPoint.get.W))
-    FixedPoint.fromData(binaryPoint, floored)
+    val floored = Cat(data >> binaryPoint.get, 0.U(binaryPoint.get.W.min(width)))
+    FixedPoint.fromData(binaryPoint, floored, Some(width))
   }
 
   def do_ceil(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint = {
     requireKnownBP()
     // Get a number with the fractional part set to ones
-    val almostOne = ((1 << binaryPoint.get) - 1).U(width)
+    val almostOne = ((1 << binaryPoint.get) - 1).S
     // Add it to the number and floor it
-    (this + FixedPoint.fromData(binaryPoint, almostOne)).floor
+    val ceiled = (this + FixedPoint.fromData(binaryPoint, almostOne)).floor
+    FixedPoint.fromData(binaryPoint, ceiled, Some(width))
   }
 
   def do_round(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint = {
     requireKnownBP()
     // Add 0.5 to the number and then floor it
-    (this + 0.5.F(1.BP)).floor.setBinaryPoint(binaryPoint.get)
+    val rounded = (this + 0.5.F(1.BP)).floor.setBinaryPoint(binaryPoint.get)
+    FixedPoint.fromData(binaryPoint, rounded, Some(width))
   }
 
   def do_===(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): Bool =
@@ -411,8 +414,7 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
       that.BP,
       if (diff > 0) data << diff
       else if (diff < 0) data >> -diff
-      else data,
-      Some(width + diff)
+      else data
     )
   }
 

@@ -37,6 +37,7 @@ class ConnectSpec extends ChiselPropSpec with Utils {
   }
   property("FixedPoint := FixedPoint should succeed") {
     assertTesterPasses { new CrossConnectTester(FixedPoint(16.W, 8.BP), FixedPoint(16.W, 8.BP)) }
+    assertTesterPasses { new CrossConnectTester(FixedPoint(2.W, 14.BP), FixedPoint(8.W, 6.BP)) }
   }
   property("FixedPoint := SInt should fail") {
     intercept[ChiselException] {
