@@ -88,7 +88,7 @@ object FixedPoint extends NumObject {
     */
   private[fixedpoint] def fromData(
     binaryPoint: BinaryPoint,
-    data:        SInt,
+    data:        Data,
     widthOption: Option[Width] = None
   )(
     implicit sourceInfo: SourceInfo,
@@ -96,20 +96,16 @@ object FixedPoint extends NumObject {
   ): FixedPoint = {
     val _new = Wire(
       FixedPoint(
-        widthOption match {
-          case Some(width) => width
-          case None        => recreateWidth(data)
-        },
+        widthOption.getOrElse(recreateWidth(data)),
         binaryPoint
       )
     )
-    _new.data := data
+    _new.data := data.asTypeOf(_new.data)
     _new
   }
 
-  private[fixedpoint] def recreateWidth[T <: Data](d: T): Width = d.widthOption match {
-    case Some(w) => w.W
-    case None    => UnknownWidth()
+  private[fixedpoint] def recreateWidth[T <: Data](d: T): Width = {
+    d.widthOption.fold[Width](UnknownWidth())(_.W)
   }
 
   /** Align all FixedPoints in a (possibly heterogeneous) sequence by width and binary point
@@ -120,34 +116,32 @@ object FixedPoint extends NumObject {
     implicit sourceInfo: SourceInfo,
     compileOptions:      CompileOptions
   ): Seq[T] = {
-
     val bps = in.collect {
       case el: FixedPoint =>
         el.requireKnownBP()
         el.binaryPoint
     }
 
-    val out: Iterable[T] = if (bps.nonEmpty) {
-      val maxBP = bps.fold(0.BP)(_.max(_))
-      val maxWidth = in.map { el =>
-        val width = recreateWidth(el)
-        val extra = el match {
-          case el: FixedPoint => maxBP.get - el.binaryPoint.get
-          case _ => 0
+    val out =
+      if (bps.isEmpty) in
+      else {
+        val maxBP = bps.fold(0.BP)(_.max(_))
+        val maxWidth = in.map {
+          case el: FixedPoint => recreateWidth(el) + (maxBP.get - el.binaryPoint.get)
+          case nonFp => recreateWidth(nonFp)
+        }.fold(0.W)(_.max(_))
+
+        in.map {
+          case el: FixedPoint =>
+            val shift = maxBP.get - el.binaryPoint.get
+            fromData(
+              maxBP,
+              if (shift > 0) el.data << shift else el.data,
+              Some(maxWidth)
+            ).asInstanceOf[T]
+          case nonFp => nonFp
         }
-        width + extra.W
-      }.fold(0.W)(_.max(_))
-      in.map {
-        case el: FixedPoint =>
-          val shift = maxBP.get - el.binaryPoint.get
-          fromData(
-            maxBP,
-            (if (shift > 0) el.data << shift else el.data).asSInt,
-            Some(maxWidth)
-          ).asInstanceOf[T]
-        case nonFp => nonFp
       }
-    } else in
     out.toSeq
   }
 
@@ -190,14 +184,14 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
     with OpaqueType
     with Num[FixedPoint]
     with HasBinaryPoint {
+  if (binaryPoint.known) require(binaryPoint.get >= 0, "Negative binary point is not supported")
   private val data: SInt = SInt(width)
   val elements:     SeqMap[String, SInt] = SeqMap("" -> data)
 
   def binaryPoint: BinaryPoint = _inferredBinaryPoint
 
-  private def requireKnownBP(message: => Any = "Unknown binary point is not supported in this operation"): Unit = {
-    require(_inferredBinaryPoint.isInstanceOf[KnownBinaryPoint], message)
-  }
+  private def requireKnownBP(message: String = "Unknown binary point is not supported in this operation"): Unit =
+    if (!binaryPoint.known) throw new ChiselException(message)
 
   private def additiveOp(
     that: FixedPoint,
@@ -207,7 +201,7 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
     compileOptions:      CompileOptions
   ): FixedPoint = {
     val Seq(_this, _that) = FixedPoint.dataAligned(this, that).map(WireDefault(_))
-    FixedPoint.fromData(_inferredBinaryPoint.max(that._inferredBinaryPoint), f(_this.data, _that.data))
+    FixedPoint.fromData(binaryPoint.max(that.binaryPoint), f(_this.data, _that.data))
   }
 
   private def comparativeOp(that: FixedPoint, f: (SInt, SInt) => Bool): Bool = {
@@ -221,14 +215,14 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
   )(
     implicit sourceInfo:   SourceInfo,
     connectCompileOptions: CompileOptions
-  ): Unit =
+  ): Unit = {
     that match {
       case that: FixedPoint =>
-        if (_inferredBinaryPoint.isInstanceOf[KnownBinaryPoint]) {
-          c(data, that.setBinaryPoint(_inferredBinaryPoint.get).data)
+        if (binaryPoint.known) {
+          c(data, that.setBinaryPoint(binaryPoint.get).data)
         } else {
-          if (that._inferredBinaryPoint.isInstanceOf[KnownBinaryPoint]) {
-            this._inferredBinaryPoint = BinaryPoint(that._inferredBinaryPoint.get)
+          if (that.binaryPoint.known) {
+            this._inferredBinaryPoint = BinaryPoint(that.binaryPoint.get)
           }
           c(data, that.data)
         }
@@ -236,6 +230,7 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
         c(data, that)
       case _ => throw new ChiselException(s"Cannot connect ${this} and ${that}")
     }
+  }
 
   override def do_+(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
     additiveOp(that, _ + _)
@@ -256,13 +251,13 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
     additiveOp(that, _ -& _)
 
   def do_unary_-(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(_inferredBinaryPoint, -data)
+    FixedPoint.fromData(binaryPoint, -data)
 
   def do_unary_-%(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(_inferredBinaryPoint, data.unary_-%)
+    FixedPoint.fromData(binaryPoint, data.unary_-%)
 
   override def do_*(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(_inferredBinaryPoint + that._inferredBinaryPoint, data * that.data)
+    FixedPoint.fromData(binaryPoint + that.binaryPoint, data * that.data)
 
   override def do_/(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
     throw new ChiselException(s"division is illegal on FixedPoint types")
@@ -283,27 +278,29 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
     comparativeOp(that, _ >= _)
 
   override def do_abs(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(_inferredBinaryPoint, data.abs)
+    FixedPoint.fromData(binaryPoint, data.abs)
 
   def do_floor(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint = {
     requireKnownBP()
     // Set the fractional part to zeroes
-    val floored = Cat(data >> binaryPoint.get, 0.U(binaryPoint.get.W)).asSInt
-    FixedPoint.fromData(binaryPoint, floored)
+    val floored = Cat(data >> binaryPoint.get, 0.U(binaryPoint.get.W.min(width)))
+    FixedPoint.fromData(binaryPoint, floored, Some(width))
   }
 
   def do_ceil(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint = {
     requireKnownBP()
     // Get a number with the fractional part set to ones
-    val almostOne = ((1 << binaryPoint.get) - 1).U(width)
+    val almostOne = ((1 << binaryPoint.get) - 1).S
     // Add it to the number and floor it
-    (this + FixedPoint.fromData(binaryPoint, almostOne.asSInt)).floor
+    val ceiled = (this + FixedPoint.fromData(binaryPoint, almostOne)).floor
+    FixedPoint.fromData(binaryPoint, ceiled, Some(width))
   }
 
   def do_round(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint = {
     requireKnownBP()
     // Add 0.5 to the number and then floor it
-    (this + 0.5.F(1.BP)).floor.setBinaryPoint(binaryPoint.get)
+    val rounded = (this + 0.5.F(1.BP)).floor.setBinaryPoint(binaryPoint.get)
+    FixedPoint.fromData(binaryPoint, rounded, Some(width))
   }
 
   def do_===(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): Bool =
@@ -316,22 +313,22 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
     comparativeOp(that, _ =/= _)
 
   def do_>>(that: Int)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(_inferredBinaryPoint, (data >> that).asSInt)
+    FixedPoint.fromData(binaryPoint, data >> that)
 
   def do_>>(that: BigInt)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(_inferredBinaryPoint, (data >> that).asSInt)
+    FixedPoint.fromData(binaryPoint, data >> that)
 
   def do_>>(that: UInt)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(_inferredBinaryPoint, (data >> that).asSInt)
+    FixedPoint.fromData(binaryPoint, data >> that)
 
   def do_<<(that: Int)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(_inferredBinaryPoint, (data << that).asSInt)
+    FixedPoint.fromData(binaryPoint, data << that)
 
   def do_<<(that: BigInt)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(_inferredBinaryPoint, (data << that).asSInt)
+    FixedPoint.fromData(binaryPoint, data << that)
 
   def do_<<(that: UInt)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(_inferredBinaryPoint, (data << that).asSInt)
+    FixedPoint.fromData(binaryPoint, data << that)
 
   def +%(that: FixedPoint): FixedPoint = macro SourceInfoTransform.thatArg
 
@@ -381,7 +378,7 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
     implicit sourceInfo: SourceInfo,
     compileOptions:      CompileOptions
   ): Unit = {
-    this.data := that.asSInt
+    this.data := that.asTypeOf(this.data)
   }
 
   def apply(x: BigInt): Bool = data.apply(x)
@@ -400,34 +397,28 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
 
   final def asSInt: SInt = data.asSInt
 
-  final def asFixedPoint(binaryPoint: BinaryPoint): FixedPoint = {
-    binaryPoint match {
-      case KnownBinaryPoint(_) =>
-        FixedPoint.fromData(binaryPoint, data, Some(width))
-      case UnknownBinaryPoint =>
-        throw new ChiselException(
-          s"cannot call $this.asFixedPoint(binaryPoint=$binaryPoint), you must specify a known binaryPoint"
-        )
-    }
+  def do_asFixedPoint(
+    binaryPoint: BinaryPoint
+  )(
+    implicit sourceInfo: SourceInfo,
+    compileOptions:      CompileOptions
+  ): FixedPoint = {
+    requireKnownBP(s"cannot call $this.asFixedPoint(binaryPoint=$binaryPoint), you must specify a known binaryPoint")
+    FixedPoint.fromData(binaryPoint, data, Some(width))
   }
 
   def do_setBinaryPoint(that: Int)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint = {
-    _inferredBinaryPoint match {
-      case KnownBinaryPoint(current) =>
-        val diff = that - current
-        FixedPoint.fromData(
-          that.BP,
-          (if (diff > 0) data << diff
-           else if (diff < 0) data >> -diff
-           else data).asSInt,
-          Some(width + diff)
-        )
-      case UnknownBinaryPoint =>
-        throw new ChiselException(
-          s"cannot set new binary point if current binary point is unknown"
-        )
-    }
+    requireKnownBP(s"cannot set new binary point if current binary point is unknown")
+    val diff = that - binaryPoint.get
+    FixedPoint.fromData(
+      that.BP,
+      if (diff > 0) data << diff
+      else if (diff < 0) data >> -diff
+      else data
+    )
   }
+
+  final def asFixedPoint(that: BinaryPoint): FixedPoint = macro SourceInfoTransform.thatArg
 
   def setBinaryPoint(that: Int): FixedPoint = macro SourceInfoTransform.thatArg
 
@@ -447,10 +438,9 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
       case Some(value) => s"FixedPoint$width$binaryPoint($value)"
       case _           =>
         // Can't use stringAccessor so will have to extract from data field's toString...
-        val suffix = ".*?([(].*[)])".r.findFirstMatchIn(data.toString) match {
-          case Some(m) => m.group(1)
-          case None    => ""
-        }
+        val suffix = ".*?([(].*[)])".r
+          .findFirstMatchIn(data.toString)
+          .fold("")(_.group(1))
         s"FixedPoint$width$binaryPoint$suffix"
     }
   }

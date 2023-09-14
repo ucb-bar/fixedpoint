@@ -150,35 +150,80 @@ class FixedPointLitExtractTester extends BasicTester {
   assert(-4.75.F(6.W, 2.BP)(100) === true.B)
   assert(-4.75.F(6.W, 2.BP)(3, 0) === "b1101".U)
   assert(-4.75.F(6.W, 2.BP)(9, 0) === "b1111101101".U)
+
+  assert(-0.125.F(2.W, 4.BP)(0) === false.B)
+  assert(-0.125.F(2.W, 4.BP)(1) === true.B)
+  assert(-0.125.F(2.W, 4.BP)(100) === true.B)
+  assert(-0.125.F(2.W, 4.BP)(1, 0) === "b10".U)
+  assert(0.0625.F(2.W, 4.BP)(0) === true.B)
+  assert(0.0625.F(2.W, 4.BP)(1) === false.B)
+  assert(0.0625.F(2.W, 4.BP)(100) === false.B)
+  assert(0.0625.F(2.W, 4.BP)(1, 0) === "b01".U)
   stop()
 }
 
-class FixedPointFloorTester extends BasicTester {
-  assert(-4.75.F(8.W, 2.BP).floor === -5.0.F(8.W, 2.BP))
-  assert(55.5.F(8.W, 2.BP).floor === 55.0.F(8.W, 2.BP))
-  assert(-4.0.F(2.BP).floor === -4.0.F(2.BP))
-  assert(0.125.F(8.W, 4.BP).floor === 0.0.F(8.W, 4.BP))
-  assert(3.0.F(0.BP).floor === 3.0.F(0.BP))
+class FixedPointUnaryFuncTester(f: FixedPoint => FixedPoint, inExpected: Seq[(FixedPoint, FixedPoint)])
+    extends BasicTester {
+  inExpected.foreach {
+    case (in, expected) =>
+      val out = f(in)
+      assert(out === expected, f"Wrong value: in=${in}; out=${out}; expected=${expected}")
+      assert(out.widthOption == in.widthOption, f"Width changed: in=${in}; out=${out}")
+      assert(out.binaryPoint == in.binaryPoint, f"Binary point changed: in=${in}; out=${out}")
+  }
   stop()
 }
 
-class FixedPointCeilTester extends BasicTester {
-  assert(-4.75.F(8.W, 2.BP).ceil === -4.0.F(8.W, 2.BP))
-  assert(55.5.F(8.W, 2.BP).ceil === 56.0.F(8.W, 2.BP))
-  assert(-4.0.F(2.BP).ceil === -4.0.F(2.BP))
-  assert(0.125.F(8.W, 4.BP).ceil === 1.0.F(8.W, 4.BP))
-  assert(3.0.F(0.BP).ceil === 3.0.F(0.BP))
-  stop()
-}
+class FixedPointFloorTester
+    extends FixedPointUnaryFuncTester(
+      _.floor,
+      Seq(
+        -4.75.F(8.W, 2.BP) -> -5.0.F(8.W, 2.BP),
+        55.5.F(8.W, 2.BP) -> 55.0.F(8.W, 2.BP),
+        -4.0.F(2.BP) -> -4.0.F(2.BP),
+        0.125.F(8.W, 4.BP) -> 0.0.F(8.W, 4.BP),
+        3.0.F(0.BP) -> 3.0.F(0.BP),
+        // Overflow to zero when binaryPoint >= width
+        0.25.F(2.W, 2.BP) -> 0.F(0.BP),
+        -0.5.F(2.W, 2.BP) -> 0.F(0.BP),
+        0.0625.F(2.W, 4.BP) -> 0.F(0.BP),
+        -0.125.F(2.W, 4.BP) -> 0.F(0.BP)
+      )
+    )
 
-class FixedPointRoundTester extends BasicTester {
-  assert(-4.75.F(8.W, 2.BP).round === -5.0.F(8.W, 2.BP))
-  assert(25.5.F(8.W, 2.BP).round === 26.0.F(8.W, 2.BP))
-  assert(-4.0.F(2.BP).round === -4.0.F(2.BP))
-  assert(0.125.F(8.W, 3.BP).round === 0.0.F(8.W, 3.BP))
-  assert(3.0.F(0.BP).round === 3.0.F(0.BP))
-  stop()
-}
+class FixedPointCeilTester
+    extends FixedPointUnaryFuncTester(
+      _.ceil,
+      Seq(
+        -4.75.F(8.W, 2.BP) -> -4.0.F(8.W, 2.BP),
+        55.5.F(8.W, 2.BP) -> 56.0.F(8.W, 2.BP),
+        -4.0.F(2.BP) -> -4.0.F(2.BP),
+        0.125.F(8.W, 4.BP) -> 1.0.F(8.W, 4.BP),
+        3.0.F(0.BP) -> 3.0.F(0.BP),
+        // Overflow to zero when binaryPoint >= width
+        0.25.F(2.W, 2.BP) -> 0.F(0.BP),
+        -0.5.F(2.W, 2.BP) -> 0.F(0.BP),
+        0.0625.F(2.W, 4.BP) -> 0.F(0.BP),
+        -0.125.F(2.W, 4.BP) -> 0.F(0.BP)
+      )
+    )
+
+class FixedPointRoundTester
+    extends FixedPointUnaryFuncTester(
+      _.round,
+      Seq(
+        -4.75.F(8.W, 2.BP) -> -5.0.F(8.W, 2.BP),
+        25.5.F(8.W, 2.BP) -> 26.0.F(8.W, 2.BP),
+        -4.0.F(2.BP) -> -4.0.F(2.BP),
+        0.125.F(8.W, 3.BP) -> 0.0.F(8.W, 3.BP),
+        3.0.F(0.BP) -> 3.0.F(0.BP),
+        // Overflow to zero when binaryPoint >= width
+        0.25.F(2.W, 2.BP) -> 0.F(0.BP),
+        -0.5.F(2.W, 2.BP) -> 0.F(0.BP),
+        0.0625.F(2.W, 4.BP) -> 0.F(0.BP),
+        -0.125.F(2.W, 4.BP) -> 0.F(0.BP)
+      )
+    )
 
 class FixedPointSpec extends ChiselPropSpec with Utils {
   property("should allow set binary point") {
@@ -211,4 +256,9 @@ class FixedPointSpec extends ChiselPropSpec with Utils {
     assertTesterPasses { new FixedPointRoundTester }
   }
 
+  property("Negative binary point is invalid") {
+    assertThrows[IllegalArgumentException](new BasicTester { 2.F((-1).BP) })
+    assertThrows[IllegalArgumentException](new BasicTester { 1.F(0.BP).setBinaryPoint(-1) })
+    assertThrows[IllegalArgumentException](new BasicTester { FixedPoint(4.W, (-2).BP) })
+  }
 }

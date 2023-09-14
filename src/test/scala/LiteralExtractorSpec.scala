@@ -10,21 +10,27 @@ class LiteralExtractorSpec extends ChiselFlatSpec {
   "litValue" should "return the literal value" in {
     assert(1.25.F(2.BP).litValue === BigInt("101", 2))
     assert(2.25.F(2.BP).litValue === BigInt("1001", 2))
+    assert(0.0625.F(2.W, 4.BP).litValue === BigInt("01", 2))
 
     assert(-1.25.F(2.BP).litValue === BigInt("-101", 2))
     assert(-2.25.F(2.BP).litValue === BigInt("-1001", 2))
+    assert(-0.0625.F(2.W, 4.BP).litValue === BigInt("-01", 2))
   }
 
   "litToDouble" should "return the literal value" in {
     assert(1.25.F(2.BP).litToDouble == 1.25)
     assert(2.25.F(2.BP).litToDouble == 2.25)
+    assert(0.0625.F(2.W, 4.BP).litToDouble == 0.0625)
 
     assert(-1.25.F(2.BP).litToDouble == -1.25)
     assert(-2.25.F(2.BP).litToDouble == -2.25)
+    assert(-0.0625.F(2.W, 4.BP).litToDouble == -0.0625)
 
     // test rounding
     assert(1.24.F(1.BP).litToDouble == 1.0)
     assert(1.25.F(1.BP).litToDouble == 1.5)
+    assert(0.0624.F(2.W, 3.BP).litToDouble == 0.0)
+    assert(0.0625.F(2.W, 3.BP).litToDouble == 0.125)
   }
 
   "doubles and big decimals" should "round trip properly" in {
