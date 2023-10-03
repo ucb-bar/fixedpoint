@@ -425,8 +425,7 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
   def widthKnown: Boolean = data.widthKnown
 
   override def typeEquivalent(that: Data): Boolean = {
-    // Can't compare binaryPoints since cloneSuperType doesn't work in case of user-defined FixedPoint
-    this.getClass == that.getClass && FixedPoint.recreateWidth(this) == FixedPoint.recreateWidth(that)
+    this.getClass == that.getClass
   }
 
   override def litOption: Option[BigInt] = data.litOption
