@@ -3,7 +3,7 @@
 import chisel3.internal.firrtl.UnknownWidth
 import circt.stage.ChiselStage
 import chisel3.testers.BasicTester
-import chisel3.{Mux => _, fromBigDecimalToLiteral => _, fromDoubleToLiteral => _, fromIntToBinaryPoint => _, _}
+import chisel3.{Mux => _, _}
 import fixedpoint._
 import fixedpoint.shadow.Mux
 import org.scalatest.flatspec.AnyFlatSpec
@@ -237,7 +237,7 @@ class FixedPointSpec extends ChiselPropSpec with Utils {
   }
   property("Negative shift amounts are invalid") {
     a[ChiselException] should be thrownBy extractCause[ChiselException] {
-      ChiselStage.elaborate(new NegativeShift(FixedPoint(1.W, 0.BP).asSInt))
+      ChiselStage.emitCHIRRTL(new NegativeShift(FixedPoint(1.W, 0.BP).asSInt))
     }
   }
   property("Bit extraction on literals should work for all non-negative indices") {

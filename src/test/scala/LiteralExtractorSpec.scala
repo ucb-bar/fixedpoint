@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import chisel3.experimental.BundleLiterals._
-import chisel3.experimental.{FixedPoint => _, _}
 import chisel3.testers.BasicTester
-import chisel3.{fromDoubleToLiteral => _, fromIntToBinaryPoint => _, _}
+import chisel3._
 import fixedpoint._
 
 class LiteralExtractorSpec extends ChiselFlatSpec {

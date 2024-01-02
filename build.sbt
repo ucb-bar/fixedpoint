@@ -12,10 +12,10 @@ scalacOptions ++= Seq(
   "-language:reflectiveCalls",
   "-Ymacro-annotations"
 )
-val chiselVersion = "3.6.0"
-addCompilerPlugin("edu.berkeley.cs" %% "chisel3-plugin" % chiselVersion cross CrossVersion.full)
+val chiselVersion = "5.1.0"
+addCompilerPlugin("org.chipsalliance" %% "chisel-plugin" % chiselVersion cross CrossVersion.full)
 libraryDependencies ++= Seq(
-  "edu.berkeley.cs" %% "chisel3" % chiselVersion,
+  "org.chipsalliance" %% "chisel" % chiselVersion,
   "org.scalatest" %% "scalatest" % "3.2.15" % "test",
   "org.scalatestplus" %% "scalacheck-1-14" % "3.2.2.0" % "test",
 )

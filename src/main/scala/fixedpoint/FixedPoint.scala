@@ -13,7 +13,7 @@
 
 package fixedpoint
 
-import chisel3.{fromDoubleToLiteral => _, fromIntToBinaryPoint => _, _}
+import chisel3._
 import chisel3.experimental.BundleLiterals.AddBundleLiteralConstructor
 import chisel3.experimental.OpaqueType
 import chisel3.internal.firrtl.{KnownWidth, UnknownWidth, Width}
@@ -91,8 +91,7 @@ object FixedPoint extends NumObject {
     data:        Data,
     widthOption: Option[Width] = None
   )(
-    implicit sourceInfo: SourceInfo,
-    compileOptions:      CompileOptions
+    implicit sourceInfo: SourceInfo
   ): FixedPoint = {
     val _new = Wire(
       FixedPoint(
@@ -110,12 +109,7 @@ object FixedPoint extends NumObject {
 
   /** Align all FixedPoints in a (possibly heterogeneous) sequence by width and binary point
     */
-  private[fixedpoint] def dataAligned[T <: Data](
-    in: Iterable[T]
-  )(
-    implicit sourceInfo: SourceInfo,
-    compileOptions:      CompileOptions
-  ): Seq[T] = {
+  private[fixedpoint] def dataAligned[T <: Data](in: Iterable[T])(implicit sourceInfo: SourceInfo): Seq[T] = {
     val bps = in.collect {
       case el: FixedPoint =>
         el.requireKnownBP()
@@ -145,12 +139,8 @@ object FixedPoint extends NumObject {
     out.toSeq
   }
 
-  private[fixedpoint] def dataAligned(
-    in: FixedPoint*
-  )(
-    implicit sourceInfo: SourceInfo,
-    compileOptions:      CompileOptions
-  ): Seq[FixedPoint] = dataAligned(in)
+  private[fixedpoint] def dataAligned(in: FixedPoint*)(implicit sourceInfo: SourceInfo): Seq[FixedPoint] =
+    dataAligned(in)
 
   class ImplicitsCls private[fixedpoint] {
 
@@ -193,13 +183,7 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
   private def requireKnownBP(message: String = "Unknown binary point is not supported in this operation"): Unit =
     if (!binaryPoint.known) throw new ChiselException(message)
 
-  private def additiveOp(
-    that: FixedPoint,
-    f:    (SInt, SInt) => SInt
-  )(
-    implicit sourceInfo: SourceInfo,
-    compileOptions:      CompileOptions
-  ): FixedPoint = {
+  private def additiveOp(that: FixedPoint, f: (SInt, SInt) => SInt)(implicit sourceInfo: SourceInfo): FixedPoint = {
     val Seq(_this, _that) = FixedPoint.dataAligned(this, that).map(WireDefault(_))
     FixedPoint.fromData(binaryPoint.max(that.binaryPoint), f(_this.data, _that.data))
   }
@@ -209,13 +193,7 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
     f(_this.data, _that.data)
   }
 
-  private def connectOp(
-    that: Data,
-    c:    (Data, Data) => Unit
-  )(
-    implicit sourceInfo:   SourceInfo,
-    connectCompileOptions: CompileOptions
-  ): Unit = {
+  private def connectOp(that: Data, c: (Data, Data) => Unit)(implicit sourceInfo: SourceInfo): Unit = {
     that match {
       case that: FixedPoint =>
         if (binaryPoint.known) {
@@ -232,62 +210,49 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
     }
   }
 
-  override def do_+(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    additiveOp(that, _ + _)
+  override def do_+(that: FixedPoint)(implicit sourceInfo: SourceInfo): FixedPoint = additiveOp(that, _ + _)
 
-  override def do_-(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    additiveOp(that, _ - _)
+  override def do_-(that: FixedPoint)(implicit sourceInfo: SourceInfo): FixedPoint = additiveOp(that, _ - _)
 
-  def do_+%(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    additiveOp(that, _ +% _)
+  def do_+%(that: FixedPoint)(implicit sourceInfo: SourceInfo): FixedPoint = additiveOp(that, _ +% _)
 
-  def do_+&(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    additiveOp(that, _ +& _)
+  def do_+&(that: FixedPoint)(implicit sourceInfo: SourceInfo): FixedPoint = additiveOp(that, _ +& _)
 
-  def do_-%(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    additiveOp(that, _ -% _)
+  def do_-%(that: FixedPoint)(implicit sourceInfo: SourceInfo): FixedPoint = additiveOp(that, _ -% _)
 
-  def do_-&(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    additiveOp(that, _ -& _)
+  def do_-&(that: FixedPoint)(implicit sourceInfo: SourceInfo): FixedPoint = additiveOp(that, _ -& _)
 
-  def do_unary_-(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(binaryPoint, -data)
+  def do_unary_-(implicit sourceInfo: SourceInfo): FixedPoint = FixedPoint.fromData(binaryPoint, -data)
 
-  def do_unary_-%(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(binaryPoint, data.unary_-%)
+  def do_unary_-%(implicit sourceInfo: SourceInfo): FixedPoint = FixedPoint.fromData(binaryPoint, data.unary_-%)
 
-  override def do_*(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
+  override def do_*(that: FixedPoint)(implicit sourceInfo: SourceInfo): FixedPoint =
     FixedPoint.fromData(binaryPoint + that.binaryPoint, data * that.data)
 
-  override def do_/(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
+  override def do_/(that: FixedPoint)(implicit sourceInfo: SourceInfo): FixedPoint =
     throw new ChiselException(s"division is illegal on FixedPoint types")
 
-  override def do_%(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
+  override def do_%(that: FixedPoint)(implicit sourceInfo: SourceInfo): FixedPoint =
     throw new ChiselException(s"mod is illegal on FixedPoint types")
 
-  override def do_<(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): Bool =
-    comparativeOp(that, _ < _)
+  override def do_<(that: FixedPoint)(implicit sourceInfo: SourceInfo): Bool = comparativeOp(that, _ < _)
 
-  override def do_<=(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): Bool =
-    comparativeOp(that, _ <= _)
+  override def do_<=(that: FixedPoint)(implicit sourceInfo: SourceInfo): Bool = comparativeOp(that, _ <= _)
 
-  override def do_>(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): Bool =
-    comparativeOp(that, _ > _)
+  override def do_>(that: FixedPoint)(implicit sourceInfo: SourceInfo): Bool = comparativeOp(that, _ > _)
 
-  override def do_>=(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): Bool =
-    comparativeOp(that, _ >= _)
+  override def do_>=(that: FixedPoint)(implicit sourceInfo: SourceInfo): Bool = comparativeOp(that, _ >= _)
 
-  override def do_abs(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(binaryPoint, data.abs)
+  override def do_abs(implicit sourceInfo: SourceInfo): FixedPoint = FixedPoint.fromData(binaryPoint, data.abs)
 
-  def do_floor(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint = {
+  def do_floor(implicit sourceInfo: SourceInfo): FixedPoint = {
     requireKnownBP()
     // Set the fractional part to zeroes
     val floored = Cat(data >> binaryPoint.get, 0.U(binaryPoint.get.W.min(width)))
     FixedPoint.fromData(binaryPoint, floored, Some(width))
   }
 
-  def do_ceil(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint = {
+  def do_ceil(implicit sourceInfo: SourceInfo): FixedPoint = {
     requireKnownBP()
     // Get a number with the fractional part set to ones
     val almostOne = ((1 << binaryPoint.get) - 1).S
@@ -296,39 +261,30 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
     FixedPoint.fromData(binaryPoint, ceiled, Some(width))
   }
 
-  def do_round(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint = {
+  def do_round(implicit sourceInfo: SourceInfo): FixedPoint = {
     requireKnownBP()
     // Add 0.5 to the number and then floor it
     val rounded = (this + 0.5.F(1.BP)).floor.setBinaryPoint(binaryPoint.get)
     FixedPoint.fromData(binaryPoint, rounded, Some(width))
   }
 
-  def do_===(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): Bool =
-    comparativeOp(that, _ === _)
+  def do_===(that: FixedPoint)(implicit sourceInfo: SourceInfo): Bool = comparativeOp(that, _ === _)
 
-  def do_=/=(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): Bool =
-    comparativeOp(that, _ =/= _)
+  def do_=/=(that: FixedPoint)(implicit sourceInfo: SourceInfo): Bool = comparativeOp(that, _ =/= _)
 
-  def do_!=(that: FixedPoint)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): Bool =
-    comparativeOp(that, _ =/= _)
+  def do_!=(that: FixedPoint)(implicit sourceInfo: SourceInfo): Bool = comparativeOp(that, _ =/= _)
 
-  def do_>>(that: Int)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(binaryPoint, data >> that)
+  def do_>>(that: Int)(implicit sourceInfo: SourceInfo): FixedPoint = FixedPoint.fromData(binaryPoint, data >> that)
 
-  def do_>>(that: BigInt)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(binaryPoint, data >> that)
+  def do_>>(that: BigInt)(implicit sourceInfo: SourceInfo): FixedPoint = FixedPoint.fromData(binaryPoint, data >> that)
 
-  def do_>>(that: UInt)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(binaryPoint, data >> that)
+  def do_>>(that: UInt)(implicit sourceInfo: SourceInfo): FixedPoint = FixedPoint.fromData(binaryPoint, data >> that)
 
-  def do_<<(that: Int)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(binaryPoint, data << that)
+  def do_<<(that: Int)(implicit sourceInfo: SourceInfo): FixedPoint = FixedPoint.fromData(binaryPoint, data << that)
 
-  def do_<<(that: BigInt)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(binaryPoint, data << that)
+  def do_<<(that: BigInt)(implicit sourceInfo: SourceInfo): FixedPoint = FixedPoint.fromData(binaryPoint, data << that)
 
-  def do_<<(that: UInt)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint =
-    FixedPoint.fromData(binaryPoint, data << that)
+  def do_<<(that: UInt)(implicit sourceInfo: SourceInfo): FixedPoint = FixedPoint.fromData(binaryPoint, data << that)
 
   def +%(that: FixedPoint): FixedPoint = macro SourceInfoTransform.thatArg
 
@@ -366,18 +322,11 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
 
   def <<(that: UInt): FixedPoint = macro SourceInfoWhiteboxTransform.thatArg
 
-  override def connect(that: Data)(implicit sourceInfo: SourceInfo, connectCompileOptions: CompileOptions): Unit =
-    connectOp(that, _ := _)
+  override def connect(that: Data)(implicit sourceInfo: SourceInfo): Unit = connectOp(that, _ := _)
 
-  override def bulkConnect(that: Data)(implicit sourceInfo: SourceInfo, connectCompileOptions: CompileOptions): Unit =
-    connectOp(that, _ <> _)
+  override def bulkConnect(that: Data)(implicit sourceInfo: SourceInfo): Unit = connectOp(that, _ <> _)
 
-  override def connectFromBits(
-    that: Bits
-  )(
-    implicit sourceInfo: SourceInfo,
-    compileOptions:      CompileOptions
-  ): Unit = {
+  override def connectFromBits(that: Bits)(implicit sourceInfo: SourceInfo): Unit = {
     this.data := that.asTypeOf(this.data)
   }
 
@@ -397,17 +346,12 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
 
   final def asSInt: SInt = data.asSInt
 
-  def do_asFixedPoint(
-    binaryPoint: BinaryPoint
-  )(
-    implicit sourceInfo: SourceInfo,
-    compileOptions:      CompileOptions
-  ): FixedPoint = {
+  def do_asFixedPoint(binaryPoint: BinaryPoint)(implicit sourceInfo: SourceInfo): FixedPoint = {
     requireKnownBP(s"cannot call $this.asFixedPoint(binaryPoint=$binaryPoint), you must specify a known binaryPoint")
     FixedPoint.fromData(binaryPoint, data, Some(width))
   }
 
-  def do_setBinaryPoint(that: Int)(implicit sourceInfo: SourceInfo, compileOptions: CompileOptions): FixedPoint = {
+  def do_setBinaryPoint(that: Int)(implicit sourceInfo: SourceInfo): FixedPoint = {
     requireKnownBP(s"cannot set new binary point if current binary point is unknown")
     val diff = that - binaryPoint.get
     FixedPoint.fromData(
@@ -423,10 +367,6 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
   def setBinaryPoint(that: Int): FixedPoint = macro SourceInfoTransform.thatArg
 
   def widthKnown: Boolean = data.widthKnown
-
-  override def typeEquivalent(that: Data): Boolean = {
-    this.getClass == that.getClass
-  }
 
   override def litOption: Option[BigInt] = data.litOption
 
