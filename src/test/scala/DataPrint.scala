@@ -2,7 +2,7 @@
 
 import chisel3.experimental.BundleLiterals._
 import circt.stage.ChiselStage
-import chisel3.{fromDoubleToLiteral => _, fromIntToBinaryPoint => _, _}
+import chisel3._
 import fixedpoint._
 import org.scalatest.matchers.should.Matchers
 
@@ -20,7 +20,7 @@ class DataPrintSpec extends ChiselFlatSpec with Matchers {
   }
 
   "Data types" should "have a meaningful string representation" in {
-    ChiselStage.elaborate {
+    ChiselStage.emitCHIRRTL {
       new RawModule {
         FixedPoint(5.W, 3.BP).toString should be("FixedPoint<5><<3>>")
       }
@@ -28,7 +28,7 @@ class DataPrintSpec extends ChiselFlatSpec with Matchers {
   }
 
   "Literals" should "have a meaningful string representation" in {
-    ChiselStage.elaborate {
+    ChiselStage.emitCHIRRTL {
       new RawModule {
         2.25.F(6.W, 2.BP).toString should be("FixedPoint<6><<2>>(2.25)")
         (-2.25).F(6.W, 2.BP).toString should be("FixedPoint<6><<2>>(-2.25)")

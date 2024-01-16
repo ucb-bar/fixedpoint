@@ -2,7 +2,7 @@
 
 import chisel3.ChiselException
 import chisel3.testers.BasicTester
-import chisel3.{fromDoubleToLiteral => _, fromIntToBinaryPoint => _, _}
+import chisel3._
 import fixedpoint._
 import fixedpoint.shadow.Mux1H
 import org.scalatest.freespec.AnyFreeSpec
