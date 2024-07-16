@@ -76,9 +76,9 @@ class FixedPointFromBitsTester extends BasicTester {
   val f6bp0 = 6.0.F(0.BP)
   val f6bp2 = 6.0.F(2.BP)
 
-  val f1bp5shiftleft2 = Wire(FixedPoint(UnknownWidth(), BinaryPoint()))
-  val f6bp0shiftright2 = Wire(FixedPoint(UnknownWidth(), BinaryPoint()))
-  val f6bp2shiftright2 = Wire(FixedPoint(UnknownWidth(), BinaryPoint()))
+  val f1bp5shiftleft2 = Wire(FixedPoint(UnknownWidth, BinaryPoint()))
+  val f6bp0shiftright2 = Wire(FixedPoint(UnknownWidth, BinaryPoint()))
+  val f6bp2shiftright2 = Wire(FixedPoint(UnknownWidth, BinaryPoint()))
 
   f1bp5shiftleft2 := f1bp5 << 2
   f6bp0shiftright2 := f6bp0 >> 2

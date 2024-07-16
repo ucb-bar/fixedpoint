@@ -21,12 +21,13 @@ import chisel3.internal.sourceinfo.{SourceInfoTransform, SourceInfoWhiteboxTrans
 
 import scala.collection.immutable.SeqMap
 import scala.language.experimental.macros
+import scala.math.BigDecimal.RoundingMode.RoundingMode
 import chisel3.util.Cat
 
 object FixedPoint extends NumObject {
 
   /** Create a FixedPoint type with inferred width. */
-  def apply(): FixedPoint = apply(UnknownWidth(), BinaryPoint())
+  def apply(): FixedPoint = apply(UnknownWidth, BinaryPoint())
 
   /** Create a FixedPoint type or port with fixed width. */
   def apply(width: Width, binaryPoint: BinaryPoint): FixedPoint = new FixedPoint(width, binaryPoint)
@@ -42,7 +43,7 @@ object FixedPoint extends NumObject {
     * Use PrivateObject to force users to specify width and binaryPoint by name
     */
   def fromBigInt(value: BigInt, binaryPoint: BinaryPoint = 0.BP): FixedPoint = {
-    apply(value, UnknownWidth(), binaryPoint)
+    apply(value, UnknownWidth, binaryPoint)
   }
 
   /** Create a FixedPoint literal with inferred width from BigInt.
@@ -50,7 +51,7 @@ object FixedPoint extends NumObject {
     */
   def fromBigInt(value: BigInt, width: Int, binaryPoint: Int): FixedPoint =
     if (width == -1) {
-      apply(value, UnknownWidth(), BinaryPoint(binaryPoint))
+      apply(value, UnknownWidth, BinaryPoint(binaryPoint))
     } else {
       apply(value, KnownWidth(width), BinaryPoint(binaryPoint))
     }
@@ -103,7 +104,7 @@ object FixedPoint extends NumObject {
   }
 
   private[fixedpoint] def recreateWidth[T <: Data](d: T): Width = {
-    d.widthOption.fold[Width](UnknownWidth())(_.W)
+    d.widthOption.fold[Width](UnknownWidth)(_.W)
   }
 
   /** Align all FixedPoints in a (possibly heterogeneous) sequence by width and binary point
@@ -145,7 +146,7 @@ object FixedPoint extends NumObject {
 
     implicit class fromDoubleToLiteral(double: Double) {
       def F(binaryPoint: BinaryPoint): FixedPoint = {
-        FixedPoint.fromDouble(double, UnknownWidth(), binaryPoint)
+        FixedPoint.fromDouble(double, UnknownWidth, binaryPoint)
       }
 
       def F(width: Width, binaryPoint: BinaryPoint): FixedPoint = {
@@ -155,7 +156,7 @@ object FixedPoint extends NumObject {
 
     implicit class fromBigDecimalToLiteral(bigDecimal: BigDecimal) {
       def F(binaryPoint: BinaryPoint): FixedPoint = {
-        FixedPoint.fromBigDecimal(bigDecimal, UnknownWidth(), binaryPoint)
+        FixedPoint.fromBigDecimal(bigDecimal, UnknownWidth, binaryPoint)
       }
 
       def F(width: Width, binaryPoint: BinaryPoint): FixedPoint = {
@@ -222,8 +223,6 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
   def do_-&(that: FixedPoint)(implicit sourceInfo: SourceInfo): FixedPoint = additiveOp(that, _ -& _)
 
   def do_unary_-(implicit sourceInfo: SourceInfo): FixedPoint = FixedPoint.fromData(binaryPoint, -data)
-
-  def do_unary_-%(implicit sourceInfo: SourceInfo): FixedPoint = FixedPoint.fromData(binaryPoint, data.unary_-%)
 
   override def do_*(that: FixedPoint)(implicit sourceInfo: SourceInfo): FixedPoint =
     FixedPoint.fromData(binaryPoint + that.binaryPoint, data * that.data)
@@ -325,8 +324,10 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
 
   override def bulkConnect(that: Data)(implicit sourceInfo: SourceInfo): Unit = connectOp(that, _ <> _)
 
-  override def connectFromBits(that: Bits)(implicit sourceInfo: SourceInfo): Unit = {
-    this.data := that.asTypeOf(this.data)
+  override protected def _fromUInt(that: UInt)(implicit sourceInfo: SourceInfo): Data = {
+    val _w = Wire(this.cloneType)
+    _w.data := that.asTypeOf(this.data)
+    _w
   }
 
   def apply(x: BigInt): Bool = data.apply(x)

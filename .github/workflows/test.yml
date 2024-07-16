@@ -20,8 +20,7 @@ env:
   VERILATOR_REPO: https://github.com/verilator/verilator
   VERILATOR_DIR: verilator
   VERILATOR_VERSION_TAG: v4.228
-  FIRTOOL_VERSION: v1.62.0
-  FIRTOOL_VERSION_TAG: firtool-1.62.0
+  FIRTOOL_VERSION_TAG: firtool-1.111.1
 
 jobs:
   test:
@@ -37,7 +36,7 @@ jobs:
         java-version: ${{ env.JDK_VERSION }}
         distribution: ${{ env.JDK_DIST }}
         cache: 'sbt'
-    - name: Install firtool ${{ env.FIRTOOL_VERSION }}
+    - name: Install firtool ${{ env.FIRTOOL_VERSION_TAG }}
       run: |
         wget -q -O - "https://github.com/llvm/circt/releases/download/${{ env.FIRTOOL_VERSION_TAG }}/firrtl-bin-linux-x64.tar.gz" | tar -zx
         sudo mv "${{ env.FIRTOOL_VERSION_TAG }}/bin/firtool" /usr/local/bin
