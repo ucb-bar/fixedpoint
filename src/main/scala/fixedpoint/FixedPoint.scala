@@ -16,7 +16,6 @@ package fixedpoint
 import chisel3._
 import chisel3.experimental.BundleLiterals.AddBundleLiteralConstructor
 import chisel3.experimental.OpaqueType
-import chisel3.internal.firrtl.{KnownWidth, UnknownWidth, Width}
 import chisel3.experimental.SourceInfo
 import chisel3.internal.sourceinfo.{SourceInfoTransform, SourceInfoWhiteboxTransform}
 

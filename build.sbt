@@ -1,6 +1,6 @@
-scalaVersion := "2.13.10"
+scalaVersion := "2.13.14"
 scalacOptions += "-language:higherKinds"
-addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.2" cross CrossVersion.full)
+addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.3" cross CrossVersion.full)
 
 scalacOptions += "-Ydelambdafy:inline"
 scalacOptions ++= Seq(
@@ -12,7 +12,7 @@ scalacOptions ++= Seq(
   "-language:reflectiveCalls",
   "-Ymacro-annotations"
 )
-val chiselVersion = "5.1.0"
+val chiselVersion = "6.5.0"
 addCompilerPlugin("org.chipsalliance" %% "chisel-plugin" % chiselVersion cross CrossVersion.full)
 libraryDependencies ++= Seq(
   "org.chipsalliance" %% "chisel" % chiselVersion,

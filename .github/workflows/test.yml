@@ -20,8 +20,8 @@ env:
   VERILATOR_REPO: https://github.com/verilator/verilator
   VERILATOR_DIR: verilator
   VERILATOR_VERSION_TAG: v4.228
-  FIRTOOL_VERSION: v1.43.0
-  FIRTOOL_VERSION_TAG: firtool-1.43.0
+  FIRTOOL_VERSION: v1.62.0
+  FIRTOOL_VERSION_TAG: firtool-1.62.0
 
 jobs:
   test:
@@ -39,7 +39,7 @@ jobs:
         cache: 'sbt'
     - name: Install firtool ${{ env.FIRTOOL_VERSION }}
       run: |
-        wget -q -O - "https://github.com/llvm/circt/releases/download/${{ env.FIRTOOL_VERSION_TAG }}/firrtl-bin-ubuntu-20.04.tar.gz" | tar -zx
+        wget -q -O - "https://github.com/llvm/circt/releases/download/${{ env.FIRTOOL_VERSION_TAG }}/firrtl-bin-linux-x64.tar.gz" | tar -zx
         sudo mv "${{ env.FIRTOOL_VERSION_TAG }}/bin/firtool" /usr/local/bin
     - name: "Cache: Verilator ${{ env.VERILATOR_VERSION_TAG }}"
       uses: actions/cache@v3
