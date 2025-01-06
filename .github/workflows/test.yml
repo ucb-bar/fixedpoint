@@ -20,8 +20,8 @@ env:
   VERILATOR_REPO: https://github.com/verilator/verilator
   VERILATOR_DIR: verilator
   VERILATOR_VERSION_TAG: v4.228
-  FIRTOOL_VERSION: v1.62.0
-  FIRTOOL_VERSION_TAG: firtool-1.62.0
+  FIRTOOL_VERSION: v1.77.0
+  FIRTOOL_VERSION_TAG: firtool-1.77.0
 
 jobs:
   test:
