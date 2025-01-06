@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import chisel3.internal.firrtl.UnknownWidth
 import circt.stage.ChiselStage
 import chisel3.testers.BasicTester
 import chisel3.{Mux => _, _}
@@ -167,7 +166,7 @@ class FixedPointUnaryFuncTester(f: FixedPoint => FixedPoint, inExpected: Seq[(Fi
   inExpected.foreach {
     case (in, expected) =>
       val out = f(in)
-      assert(out === expected, f"Wrong value: in=${in}; out=${out}; expected=${expected}")
+      assert(out === expected, cf"Wrong value: in=${in}; out=${out}; expected=${expected}")
       assert(out.widthOption == in.widthOption, f"Width changed: in=${in}; out=${out}")
       assert(out.binaryPoint == in.binaryPoint, f"Binary point changed: in=${in}; out=${out}")
   }

@@ -10,7 +10,7 @@ work just as it did before. To that end, the following classes/traits have been 
 * BinaryPoint, KnownBinaryPoint, UnknownBinaryPoint
 * HasBinaryPoint
 
-Currently, this library works with [Chisel v5.1.0](https://github.com/chipsalliance/chisel/releases/v5.1.0).
+Currently, this library works with [Chisel v6.5.0](https://github.com/chipsalliance/chisel/releases/v6.5.0).
 
 ## Usage
 
