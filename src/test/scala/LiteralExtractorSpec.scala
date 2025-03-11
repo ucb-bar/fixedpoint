@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import chisel3.experimental.BundleLiterals._
-import chisel3.testers.BasicTester
 import chisel3._
 import fixedpoint._
 
@@ -62,7 +61,7 @@ class LiteralExtractorSpec extends ChiselFlatSpec {
       val x = FixedPoint(8.W, 4.BP)
     }
 
-    class LitInsideOutsideTester(outsideLiteral: InsideBundle) extends BasicTester {
+    class LitInsideOutsideTester(outsideLiteral: InsideBundle) extends Module {
       val insideLiteral = (new InsideBundle).Lit(_.x -> 6.125.F(8.W, 4.BP))
 
       // the following errors with "assertion failed"

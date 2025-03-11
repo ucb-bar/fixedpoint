@@ -2,7 +2,6 @@
 
 import chisel3.experimental.Analog
 import circt.stage.ChiselStage
-import chisel3.testers.BasicTester
 import chisel3._
 import fixedpoint._
 
@@ -14,7 +13,7 @@ class CrossConnects(inType: Data, outType: Data) extends Module {
   io.out := io.in
 }
 
-class CrossConnectTester(inType: Data, outType: Data) extends BasicTester {
+class CrossConnectTester(inType: Data, outType: Data) extends Module {
   val dut = Module(new CrossConnects(inType, outType))
   dut.io := DontCare
   stop()

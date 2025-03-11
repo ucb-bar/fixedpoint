@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import chisel3.testers.BasicTester
 import chisel3._
 import fixedpoint._
 
-class AsTypeOfBundleTester extends BasicTester {
+class AsTypeOfBundleTester extends Module {
   class MultiTypeBundle extends Bundle {
     val u = UInt(4.W)
     val s = SInt(4.W)

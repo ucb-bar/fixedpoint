@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import chisel3.experimental.VecLiterals._
-import chisel3.testers.BasicTester
 import chisel3._
 import fixedpoint._
 
@@ -11,7 +10,7 @@ class VecLiteralSpec extends ChiselFreeSpec with Utils {
   //TODO: decide what behavior here should be
   "This doesn't work should it" ignore {
     assertTesterPasses {
-      new BasicTester {
+      new Module {
         def vecFactory = Vec(2, FixedPoint(8.W, 4.BP))
 
         val vecWire1 = Wire(Output(vecFactory))
@@ -30,7 +29,7 @@ class VecLiteralSpec extends ChiselFreeSpec with Utils {
 
   "partially initialized Vec literals should assign" in {
     assertTesterPasses {
-      new BasicTester {
+      new Module {
         def vecFactory = Vec(2, FixedPoint(8.W, 4.BP))
 
         val vecWire1 = Wire(Output(vecFactory))

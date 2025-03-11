@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import circt.stage.ChiselStage
-import chisel3.testers.BasicTester
 import chisel3.{Mux => _, _}
 import fixedpoint._
 import fixedpoint.shadow.Mux
@@ -36,7 +35,7 @@ class FixedPointLiteralSpec extends AnyFlatSpec with Matchers {
 }
 
 //noinspection TypeAnnotation,EmptyParenMethodAccessedAsParameterless
-class FixedPointFromBitsTester extends BasicTester {
+class FixedPointFromBitsTester extends Module {
   val uint = 3.U(4.W)
   val sint = (-3).S
 
@@ -94,7 +93,7 @@ class FixedPointFromBitsTester extends BasicTester {
   stop()
 }
 
-class FixedPointMuxTester extends BasicTester {
+class FixedPointMuxTester extends Module {
   val largeWidthLowPrecision = 6.0.F(4.W, 0.BP)
   val smallWidthHighPrecision = 0.25.F(2.W, 2.BP)
   val unknownWidthLowPrecision = 6.0.F(0.BP)
@@ -117,7 +116,7 @@ class SBP extends Module {
   io.out := io.in.setBinaryPoint(0)
 }
 
-class SBPTester extends BasicTester {
+class SBPTester extends Module {
   val dut = Module(new SBP)
   dut.io.in := 3.75.F(2.BP)
 
@@ -137,7 +136,7 @@ class NegativeShift(t: => Bits) extends Module {
   Reg(t) >> -1
 }
 
-class FixedPointLitExtractTester extends BasicTester {
+class FixedPointLitExtractTester extends Module {
   assert(-4.75.F(2.BP)(1) === false.B)
   assert(-4.75.F(2.BP)(2) === true.B)
   assert(-4.75.F(2.BP)(100) === true.B)
@@ -162,7 +161,7 @@ class FixedPointLitExtractTester extends BasicTester {
 }
 
 class FixedPointUnaryFuncTester(f: FixedPoint => FixedPoint, inExpected: Seq[(FixedPoint, FixedPoint)])
-    extends BasicTester {
+    extends Module {
   inExpected.foreach {
     case (in, expected) =>
       val out = f(in)
@@ -256,8 +255,8 @@ class FixedPointSpec extends ChiselPropSpec with Utils {
   }
 
   property("Negative binary point is invalid") {
-    assertThrows[IllegalArgumentException](new BasicTester { 2.F((-1).BP) })
-    assertThrows[IllegalArgumentException](new BasicTester { 1.F(0.BP).setBinaryPoint(-1) })
-    assertThrows[IllegalArgumentException](new BasicTester { FixedPoint(4.W, (-2).BP) })
+    assertThrows[IllegalArgumentException](new Module { 2.F((-1).BP) })
+    assertThrows[IllegalArgumentException](new Module { 1.F(0.BP).setBinaryPoint(-1) })
+    assertThrows[IllegalArgumentException](new Module { FixedPoint(4.W, (-2).BP) })
   }
 }

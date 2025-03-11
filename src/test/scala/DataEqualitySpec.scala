@@ -2,7 +2,6 @@
 
 import chisel3._
 import chisel3.experimental.BundleLiterals._
-import chisel3.testers.BasicTester
 import fixedpoint._
 
 class EqualityModule(lhsGen: => Data, rhsGen: => Data) extends Module {
@@ -14,7 +13,7 @@ class EqualityModule(lhsGen: => Data, rhsGen: => Data) extends Module {
   out := lhs === rhs
 }
 
-class EqualityTester(lhsGen: => Data, rhsGen: => Data) extends BasicTester {
+class EqualityTester(lhsGen: => Data, rhsGen: => Data) extends Module {
   val module = Module(new EqualityModule(lhsGen, rhsGen))
 
   assert(module.out)
@@ -51,9 +50,12 @@ class DataEqualitySpec extends ChiselFlatSpec with Utils {
     }
   }
   it should "fail with differing values" in {
-    assertTesterFails {
-      new EqualityTester(4.5.F(16.W, 4.BP), 4.6.F(16.W, 4.BP))
+    val e = the[RuntimeException] thrownBy {
+      assertTesterFails {
+        new EqualityTester(4.5.F(16.W, 4.BP), 4.6.F(16.W, 4.BP))
+      }
     }
+    e.getMessage should include("Assertion failed at DataEqualitySpec")
   }
 
   behavior.of("Bundle === Bundle")

@@ -2,8 +2,9 @@
 
 import _root_.logger.Logger
 import chisel3._
+import chisel3.simulator.scalatest.ChiselSim
+import chisel3.simulator.stimulus.RunUntilFinished
 import chisel3.stage.{ChiselGeneratorAnnotation, PrintFullStackTraceAnnotation}
-import chisel3.testers._
 import circt.stage.{CIRCTTarget, CIRCTTargetAnnotation, ChiselStage}
 //import firrtl.annotations.Annotation
 //import firrtl.ir.Circuit
@@ -22,34 +23,20 @@ import java.io.{ByteArrayOutputStream, PrintStream}
 import scala.reflect.ClassTag
 
 /** Common utility functions for Chisel unit tests. */
-trait ChiselRunners extends Assertions {
-  def runTester(
-    t:                    => BasicTester,
-    additionalVResources: Seq[String] = Seq()
-//                 annotations:          AnnotationSeq = Seq()
-  ): Boolean = {
-    val defaultBackend = chisel3.testers.TesterDriver.defaultBackend
-//    val hasBackend = TestUtils.containsBackend(annotations)
-//    val annos: Seq[Annotation] = if (hasBackend) annotations else defaultBackend +: annotations
-    TesterDriver.execute(() => t, additionalVResources)
+trait ChiselRunners extends TestSuite with Assertions with ChiselSim {
+  def runTester(t: => Module, maxCycles: Int = 1000): Unit = {
+    simulate(t)(RunUntilFinished(maxCycles))
   }
-  def assertTesterPasses(
-    t:                    => BasicTester,
-    additionalVResources: Seq[String] = Seq()
-//                          annotations:          AnnotationSeq = Seq()
-  ): Unit = {
-    assert(runTester(t, additionalVResources /*, annotations*/ ))
+  def assertTesterPasses(t: => Module, maxCycles: Int = 1000): Unit = {
+    runTester(t)
   }
-  def assertTesterFails(
-    t:                    => BasicTester,
-    additionalVResources: Seq[String] = Seq(),
-    annotations:          Seq[chisel3.aop.Aspect[_]] = Seq()
-  ): Unit = {
-    assert(!runTester(t, additionalVResources /*, annotations*/ ))
+  /** Users of this method should ensure an exception is thrown, such as with `thrownBy`. */
+  def assertTesterFails(t: => Module, maxCycles: Int = 1000): Unit = {
+    runTester(t)
   }
 
   def assertKnownWidth(expected: Int)(gen: => Data): Unit = {
-    assertTesterPasses(new BasicTester {
+    assertTesterPasses(new Module {
       val x = gen
       assert(x.getWidth === expected)
       // Sanity check that firrtl doesn't change the width
@@ -64,7 +51,7 @@ trait ChiselRunners extends Assertions {
   }
 
   def assertInferredWidth(expected: Int)(gen: => Data): Unit = {
-    assertTesterPasses(new BasicTester {
+    assertTesterPasses(new Module {
       val x = gen
       assert(!x.isWidthKnown, s"Asserting that width should be inferred yet width is known to Chisel!")
       x := 0.U(0.W).asTypeOf(chiselTypeOf(x))

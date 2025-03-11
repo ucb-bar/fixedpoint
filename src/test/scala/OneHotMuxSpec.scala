@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import chisel3.ChiselException
-import chisel3.testers.BasicTester
 import chisel3._
 import fixedpoint._
 import fixedpoint.shadow.Mux1H
@@ -30,7 +29,7 @@ class OneHotMuxSpec extends AnyFreeSpec with Matchers with ChiselRunners {
   }
 }
 
-class FixedPointOneHotTester extends BasicTester {
+class FixedPointOneHotTester extends Module {
   val out = Wire(FixedPoint(8.W, 4.BP))
 
   out := Mux1H(
@@ -47,7 +46,7 @@ class FixedPointOneHotTester extends BasicTester {
   stop()
 }
 
-class AllSameFixedPointOneHotTester extends BasicTester {
+class AllSameFixedPointOneHotTester extends Module {
   val out = Wire(FixedPoint(12.W, 3.BP))
 
   out := Mux1H(
@@ -107,7 +106,7 @@ object Agg2 extends HasMakeLit[Agg2] {
   }
 }
 
-class ParameterizedAggregateOneHotTester extends BasicTester {
+class ParameterizedAggregateOneHotTester extends Module {
   val values = (0 until 4).map { n => Agg1.makeLit(n) }
   for ((v, i) <- values.zipWithIndex) {
     val dut = Module(new ParameterizedAggregateOneHot(Agg1, new Agg1))
@@ -141,7 +140,7 @@ class Bundle1 extends Bundle {
   }
 }
 
-class InferredWidthAggregateOneHotTester extends BasicTester {
+class InferredWidthAggregateOneHotTester extends Module {
   val b0 = Wire(new Bundle1)
   b0.a := -0.25.F(2.BP)
   b0.b.c := -0.125.F(3.BP)
@@ -199,7 +198,7 @@ class Bundle3 extends Bundle {
   }
 }
 
-class DifferentBundleOneHotTester extends BasicTester {
+class DifferentBundleOneHotTester extends Module {
   val b0 = Wire(new Bundle2)
   b0.a := -0.25.F(2.BP)
   b0.b.c := -0.125.F(3.BP)

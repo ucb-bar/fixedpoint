@@ -2,7 +2,6 @@
 
 import chisel3._
 import chisel3.experimental.BundleLiterals._
-import chisel3.testers.BasicTester
 import fixedpoint._
 
 class BundleLiteralSpec extends ChiselFlatSpec with Utils {
@@ -15,7 +14,7 @@ class BundleLiteralSpec extends ChiselFlatSpec with Utils {
 
   "bundle literals" should "pack" in {
     assertTesterPasses {
-      new BasicTester {
+      new Module {
         val longBundleLit =
           (new LongBundle).Lit(_.a -> 0xdeaddeadbeefL.U, _.b -> (-0x0beef00dL).S(32.W), _.c -> 4.5.F(16.W, 4.BP))
         longBundleLit.litOption should equal(
