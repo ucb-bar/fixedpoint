@@ -17,8 +17,8 @@ val chiselVersion = "7.0.0-M2+639-5df5515f-SNAPSHOT"
 addCompilerPlugin("org.chipsalliance" %% "chisel-plugin" % chiselVersion cross CrossVersion.full)
 libraryDependencies ++= Seq(
   "org.chipsalliance" %% "chisel"          % chiselVersion,
-  "org.scalatest"     %% "scalatest"       % "3.2.15"  % "test",
-  "org.scalatestplus" %% "scalacheck-1-14" % "3.2.2.0" % "test"
+  "org.scalatest"     %% "scalatest"       % "3.2.19"   % "test",
+  "org.scalatestplus" %% "scalacheck-1-18" % "3.2.19.0" % "test"
 )
 resolvers ++= Resolver.sonatypeOssRepos("snapshots")
 
