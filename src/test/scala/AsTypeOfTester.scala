@@ -6,8 +6,8 @@ import fixedpoint._
 
 class AsTypeOfBundleTester extends Module {
   class MultiTypeBundle extends Bundle {
-    val u = UInt(4.W)
-    val s = SInt(4.W)
+    val u  = UInt(4.W)
+    val s  = SInt(4.W)
     val fp = FixedPoint(4.W, 3.BP)
   }
 

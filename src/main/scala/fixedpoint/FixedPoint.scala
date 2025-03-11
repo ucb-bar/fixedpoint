@@ -88,7 +88,7 @@ object FixedPoint extends NumObject {
     */
   private[fixedpoint] def fromData(
     binaryPoint: BinaryPoint,
-    data:        Data,
+    data: Data,
     widthOption: Option[Width] = None
   )(
     implicit sourceInfo: SourceInfo
@@ -122,7 +122,7 @@ object FixedPoint extends NumObject {
         val maxBP = bps.fold(0.BP)(_.max(_))
         val maxWidth = in.map {
           case el: FixedPoint => recreateWidth(el) + (maxBP.get - el.binaryPoint.get)
-          case nonFp => recreateWidth(nonFp)
+          case nonFp          => recreateWidth(nonFp)
         }.fold(0.W)(_.max(_))
 
         in.map {
@@ -175,8 +175,8 @@ sealed class FixedPoint private[fixedpoint] (width: Width, private var _inferred
     with Num[FixedPoint]
     with HasBinaryPoint {
   if (binaryPoint.known) require(binaryPoint.get >= 0, "Negative binary point is not supported")
-  private val data: SInt = SInt(width)
-  val elements:     SeqMap[String, SInt] = SeqMap("" -> data)
+  private val data: SInt             = SInt(width)
+  val elements: SeqMap[String, SInt] = SeqMap("" -> data)
 
   def binaryPoint: BinaryPoint = _inferredBinaryPoint
 

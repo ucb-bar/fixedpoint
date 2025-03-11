@@ -40,7 +40,7 @@ class DataEqualitySpec extends ChiselFlatSpec with Utils {
   }
 
   class RuntimeSensitiveBundle(gen: => Bundle) extends Bundle {
-    val a = UInt(8.W)
+    val a         = UInt(8.W)
     val b: Bundle = gen
   }
 

@@ -8,7 +8,7 @@ import fixedpoint._
 
 class CrossConnects(inType: Data, outType: Data) extends Module {
   val io = IO(new Bundle {
-    val in = Input(inType)
+    val in  = Input(inType)
     val out = Output(outType)
   })
   io.out := io.in

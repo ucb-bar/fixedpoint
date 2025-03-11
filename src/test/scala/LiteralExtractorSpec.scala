@@ -41,7 +41,7 @@ class LiteralExtractorSpec extends ChiselFlatSpec {
       NumBP.toDouble(BigInt("1" * 54, 2), 0.BP) // this only works if number takes less than 54 bits
     }
 
-    val bigInt108 = BigInt("1" * 108, 2)
+    val bigInt108  = BigInt("1" * 108, 2)
     val bigDecimal = Num.toBigDecimal(bigInt108, 2)
 
     val bigIntFromBigDecimal = Num.toBigInt(bigDecimal, 2)

@@ -42,10 +42,10 @@ abstract class ChiselPropSpec extends AnyPropSpec with ScalaCheckPropertyChecks 
 
   // Generator for positive (ascending or descending) ranges.
   def posRange: Gen[Range] = for {
-    dir <- Gen.oneOf(true, false)
+    dir  <- Gen.oneOf(true, false)
     step <- Gen.choose(1, 3)
-    m <- Gen.choose(1, 10)
-    n <- Gen.choose(1, 10)
+    m    <- Gen.choose(1, 10)
+    n    <- Gen.choose(1, 10)
   } yield {
     if (dir) {
       Range(m, (m + n) * step, step)
@@ -104,7 +104,7 @@ trait Utils {
     */
   def grabStdOutErr[T](thunk: => T): (String, String, T) = {
     val stdout, stderr = new ByteArrayOutputStream()
-    val ret = scala.Console.withOut(stdout) { scala.Console.withErr(stderr) { thunk } }
+    val ret            = scala.Console.withOut(stdout) { scala.Console.withErr(stderr) { thunk } }
     (stdout.toString, stderr.toString, ret)
   }
 
@@ -113,7 +113,7 @@ trait Utils {
     * @return a tuple containing LOGGED, and what the thunk returns
     */
   def grabLog[T](thunk: => T): (String, T) = {
-    val baos = new ByteArrayOutputStream()
+    val baos   = new ByteArrayOutputStream()
     val stream = new PrintStream(baos, true, "utf-8")
     val ret = Logger.makeScope(Nil) {
       Logger.setOutput(stream)

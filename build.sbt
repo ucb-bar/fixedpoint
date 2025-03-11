@@ -5,7 +5,8 @@ addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.3" cross CrossVers
 scalacOptions += "-Ydelambdafy:inline"
 scalacOptions ++= Seq(
   "-deprecation",
-  "-encoding", "UTF-8",
+  "-encoding",
+  "UTF-8",
   "-feature",
   "-unchecked",
   "-Xfatal-warnings",
@@ -15,9 +16,9 @@ scalacOptions ++= Seq(
 val chiselVersion = "7.0.0-M2+639-5df5515f-SNAPSHOT"
 addCompilerPlugin("org.chipsalliance" %% "chisel-plugin" % chiselVersion cross CrossVersion.full)
 libraryDependencies ++= Seq(
-  "org.chipsalliance" %% "chisel" % chiselVersion,
-  "org.scalatest" %% "scalatest" % "3.2.15" % "test",
-  "org.scalatestplus" %% "scalacheck-1-14" % "3.2.2.0" % "test",
+  "org.chipsalliance" %% "chisel"          % chiselVersion,
+  "org.scalatest"     %% "scalatest"       % "3.2.15"  % "test",
+  "org.scalatestplus" %% "scalacheck-1-14" % "3.2.2.0" % "test"
 )
 resolvers ++= Resolver.sonatypeOssRepos("snapshots")
 
