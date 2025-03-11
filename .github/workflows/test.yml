@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 env:
-  JDK_VERSION: 20
+  JDK_VERSION: 21
   JDK_DIST: temurin
   VERILATOR_REPO: https://github.com/verilator/verilator
   VERILATOR_DIR: verilator
@@ -29,24 +29,39 @@ jobs:
 
     steps:
     - name: Check out repo
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Set up JDK ${{ env.JDK_VERSION }} (${{ env.JDK_DIST }})
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         java-version: ${{ env.JDK_VERSION }}
         distribution: ${{ env.JDK_DIST }}
         cache: 'sbt'
+    - name: Install sbt
+      uses: sbt/setup-sbt@v1
     - name: Install firtool ${{ env.FIRTOOL_VERSION_TAG }}
+      id: install-circt
+      uses: circt/install-circt@v1.1.1
+      with:
+        version: ${{ env.FIRTOOL_VERSION_TAG }}
+    - name: Set CHISEL_FIRTOOL_PATH
+      if: steps.install-circt.outcome == 'success'
       run: |
-        wget -q -O - "https://github.com/llvm/circt/releases/download/${{ env.FIRTOOL_VERSION_TAG }}/firrtl-bin-linux-x64.tar.gz" | tar -zx
-        sudo mv "${{ env.FIRTOOL_VERSION_TAG }}/bin/firtool" /usr/local/bin
+        dir=$(dirname $(which firtool))
+        echo "CHISEL_FIRTOOL_PATH=$dir" >> "$GITHUB_ENV"
+    - name: Print firtool version
+      if: steps.install-circt.outcome == 'success'
+      run: |
+        echo "The CIRCT version used is:" >> $GITHUB_STEP_SUMMARY
+        echo \`\`\` >> $GITHUB_STEP_SUMMARY
+        $CHISEL_FIRTOOL_PATH/firtool -version >> $GITHUB_STEP_SUMMARY
+        echo \`\`\` >> $GITHUB_STEP_SUMMARY
     - name: "Cache: Verilator ${{ env.VERILATOR_VERSION_TAG }}"
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       id: install-cache
       with:
         path: ${{ env.VERILATOR_DIR }}
         key: ${{ runner.os }}-${{ runner.arch }}-verilator-${{ env.VERILATOR_VERSION_TAG }}
-    
+
     - name: Install Verilator ${{ env.VERILATOR_VERSION_TAG }} from cache
       if: steps.install-cache.outputs.cache-hit == 'true'
       run: |
@@ -57,7 +72,7 @@ jobs:
         sudo apt-get install -my libfl2 || true  # Ubuntu only (ignore if gives error)
         sudo apt-get install -my libfl-dev || true  # Ubuntu only (ignore if gives error)
         sudo apt-get install -my zlibc zlib1g zlib1g-dev || true  # Ubuntu only (ignore if gives error)
-        
+
         cd "$VERILATOR_DIR"
         sudo make install
         verilator --version
@@ -71,7 +86,7 @@ jobs:
         sudo apt-get install -my libfl2 || true  # Ubuntu only (ignore if gives error)
         sudo apt-get install -my libfl-dev || true  # Ubuntu only (ignore if gives error)
         sudo apt-get install -my zlibc zlib1g zlib1g-dev || true  # Ubuntu only (ignore if gives error)
-        
+
         git clone "$VERILATOR_REPO" "$VERILATOR_DIR"
         cd "$VERILATOR_DIR"
         git checkout "$VERILATOR_VERSION_TAG"
@@ -80,7 +95,7 @@ jobs:
         make -j "$(nproc)"
         sudo make install
         verilator --version
-    
+
     - name: Check scalafmt
       run: sbt scalafmtCheckAll
     - name: Run tests
