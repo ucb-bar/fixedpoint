@@ -177,7 +177,7 @@ class FixedPointFloorTester
       _.floor,
       Seq(
         -4.75.F(8.W, 2.BP) -> -5.0.F(8.W, 2.BP),
-        55.5.F(8.W, 2.BP)  -> 55.0.F(8.W, 2.BP),
+        23.5.F(8.W, 2.BP)  -> 23.0.F(8.W, 2.BP),
         -4.0.F(2.BP)       -> -4.0.F(2.BP),
         0.125.F(8.W, 4.BP) -> 0.0.F(8.W, 4.BP),
         3.0.F(0.BP)        -> 3.0.F(0.BP),
@@ -194,7 +194,7 @@ class FixedPointCeilTester
       _.ceil,
       Seq(
         -4.75.F(8.W, 2.BP) -> -4.0.F(8.W, 2.BP),
-        55.5.F(8.W, 2.BP)  -> 56.0.F(8.W, 2.BP),
+        23.5.F(8.W, 2.BP)  -> 24.0.F(8.W, 2.BP),
         -4.0.F(2.BP)       -> -4.0.F(2.BP),
         0.125.F(8.W, 4.BP) -> 1.0.F(8.W, 4.BP),
         3.0.F(0.BP)        -> 3.0.F(0.BP),
