@@ -2,6 +2,7 @@
 
 import circt.stage.ChiselStage
 import chisel3.{Mux => _, _}
+import chisel3.simulator.stimulus.RunUntilFinished
 import fixedpoint._
 import fixedpoint.shadow.Mux
 import org.scalatest.flatspec.AnyFlatSpec
@@ -225,13 +226,13 @@ class FixedPointRoundTester
 
 class FixedPointSpec extends ChiselPropSpec with Utils {
   property("should allow set binary point") {
-    assertTesterPasses { new SBPTester }
+    simulate(new SBPTester)(RunUntilFinished(1000))
   }
   property("should allow fromBits") {
-    assertTesterPasses { new FixedPointFromBitsTester }
+    simulate(new FixedPointFromBitsTester)(RunUntilFinished(1000))
   }
   property("should mux different widths and binary points") {
-    assertTesterPasses { new FixedPointMuxTester }
+    simulate(new FixedPointMuxTester)(RunUntilFinished(1000))
   }
   property("Negative shift amounts are invalid") {
     a[ChiselException] should be thrownBy extractCause[ChiselException] {
@@ -239,19 +240,19 @@ class FixedPointSpec extends ChiselPropSpec with Utils {
     }
   }
   property("Bit extraction on literals should work for all non-negative indices") {
-    assertTesterPasses(new FixedPointLitExtractTester)
+    simulate(new FixedPointLitExtractTester)(RunUntilFinished(1000))
   }
 
   property("Floor operation works") {
-    assertTesterPasses { new FixedPointFloorTester }
+    simulate(new FixedPointFloorTester)(RunUntilFinished(1000))
   }
 
   property("Ceil operation works") {
-    assertTesterPasses { new FixedPointCeilTester }
+    simulate(new FixedPointCeilTester)(RunUntilFinished(1000))
   }
 
   property("Round operation works") {
-    assertTesterPasses { new FixedPointRoundTester }
+    simulate(new FixedPointRoundTester)(RunUntilFinished(1000))
   }
 
   property("Negative binary point is invalid") {

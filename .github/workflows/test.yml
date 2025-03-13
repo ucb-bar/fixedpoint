@@ -19,7 +19,7 @@ env:
   JDK_DIST: temurin
   VERILATOR_REPO: https://github.com/verilator/verilator
   VERILATOR_DIR: verilator
-  VERILATOR_VERSION_TAG: v4.228
+  VERILATOR_VERSION_TAG: v5.034
   FIRTOOL_VERSION_TAG: firtool-1.111.1
 
 jobs:

@@ -1,30 +1,30 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import chisel3.ChiselException
 import chisel3._
+import chisel3.simulator.stimulus.RunUntilFinished
 import fixedpoint._
 import fixedpoint.shadow.Mux1H
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
 
-class OneHotMuxSpec extends AnyFreeSpec with Matchers with ChiselRunners {
+class OneHotMuxSpec extends ChiselFreeSpec {
   "simple one hot mux with fixed point should work" in {
-    assertTesterPasses(new FixedPointOneHotTester)
+    simulate(new FixedPointOneHotTester)(RunUntilFinished(1000))
   }
   "simple one hot mux with all same fixed point should work" in {
-    assertTesterPasses(new AllSameFixedPointOneHotTester)
+    simulate(new AllSameFixedPointOneHotTester)(RunUntilFinished(1000))
   }
   "simple one hot mux with all same parameterized aggregates containing fixed values should work" in {
-    assertTesterPasses(new ParameterizedAggregateOneHotTester)
+    simulate(new ParameterizedAggregateOneHotTester)(RunUntilFinished(1000))
   }
   "simple one hot mux with all aggregates containing inferred width fixed values should NOT work" in {
     intercept[ChiselException] {
-      assertTesterPasses(new InferredWidthAggregateOneHotTester)
+      simulate(new InferredWidthAggregateOneHotTester)(RunUntilFinished(1000))
     }
   }
   "simple one hot mux with all fixed width bundles but with different bundles should Not work" in {
     intercept[IllegalArgumentException] {
-      assertTesterPasses(new DifferentBundleOneHotTester)
+      simulate(new DifferentBundleOneHotTester)(RunUntilFinished(1000))
     }
   }
 }

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import chisel3._
+import chisel3.simulator.stimulus.RunUntilFinished
 import fixedpoint._
 
 class AsTypeOfBundleTester extends Module {
@@ -25,6 +26,6 @@ class AsTypeOfSpec extends ChiselFlatSpec {
   behavior.of("asTypeOf")
 
   it should "work with Bundles containing Bits Types" in {
-    assertTesterPasses { new AsTypeOfBundleTester }
+    simulate(new AsTypeOfBundleTester)(RunUntilFinished(1000))
   }
 }

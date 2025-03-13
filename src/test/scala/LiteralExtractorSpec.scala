@@ -2,6 +2,7 @@
 
 import chisel3.experimental.BundleLiterals._
 import chisel3._
+import chisel3.simulator.stimulus.RunUntilFinished
 import fixedpoint._
 
 class LiteralExtractorSpec extends ChiselFlatSpec {
@@ -79,7 +80,7 @@ class LiteralExtractorSpec extends ChiselFlatSpec {
     }
 
     val outsideLiteral = (new InsideBundle).Lit(_.x -> 6.125.F(8.W, 4.BP))
-    assertTesterPasses { new LitInsideOutsideTester(outsideLiteral) }
+    simulate(new LitInsideOutsideTester(outsideLiteral))(RunUntilFinished(1000))
 
   }
 }

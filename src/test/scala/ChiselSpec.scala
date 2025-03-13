@@ -3,7 +3,6 @@
 import _root_.logger.Logger
 import chisel3._
 import chisel3.simulator.scalatest.ChiselSim
-import chisel3.simulator.stimulus.RunUntilFinished
 import chisel3.stage.{ChiselGeneratorAnnotation, PrintFullStackTraceAnnotation}
 import circt.stage.{CIRCTTarget, CIRCTTargetAnnotation, ChiselStage}
 //import firrtl.annotations.Annotation
@@ -22,95 +21,17 @@ import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import java.io.{ByteArrayOutputStream, PrintStream}
 import scala.reflect.ClassTag
 
-/** Common utility functions for Chisel unit tests. */
-trait ChiselRunners extends TestSuite with Assertions with ChiselSim {
-  def runTester(t: => Module, maxCycles: Int = 1000): Unit = {
-    simulate(t)(RunUntilFinished(maxCycles))
-  }
-  def assertTesterPasses(t: => Module, maxCycles: Int = 1000): Unit = {
-    runTester(t)
-  }
-  /** Users of this method should ensure an exception is thrown, such as with `thrownBy`. */
-  def assertTesterFails(t: => Module, maxCycles: Int = 1000): Unit = {
-    runTester(t)
-  }
-
-  def assertKnownWidth(expected: Int)(gen: => Data): Unit = {
-    assertTesterPasses(new Module {
-      val x = gen
-      assert(x.getWidth === expected)
-      // Sanity check that firrtl doesn't change the width
-      x := 0.U(0.W).asTypeOf(chiselTypeOf(x))
-      val (_, done) = chisel3.util.Counter(true.B, 2)
-      val ones = if (expected == 0) 0.U(0.W) else -1.S(expected.W).asUInt
-      when(done) {
-        chisel3.assert(~(x.asUInt) === ones)
-        stop()
-      }
-    })
-  }
-
-  def assertInferredWidth(expected: Int)(gen: => Data): Unit = {
-    assertTesterPasses(new Module {
-      val x = gen
-      assert(!x.isWidthKnown, s"Asserting that width should be inferred yet width is known to Chisel!")
-      x := 0.U(0.W).asTypeOf(chiselTypeOf(x))
-      val (_, done) = chisel3.util.Counter(true.B, 2)
-      val ones = if (expected == 0) 0.U(0.W) else -1.S(expected.W).asUInt
-      when(done) {
-        chisel3.assert(~(x.asUInt) === ones)
-        stop()
-      }
-    })
-  }
-
-  /** Compiles a Chisel Module to Verilog
-    * NOTE: This uses the "test_run_dir" as the default directory for generated code.
-    * @param t the generator for the module
-    * @return the Verilog code as a string.
-    */
-//  def compile(t: => RawModule): String = {
-//    (new ChiselStage)
-//      .execute(
-//        Array("--target-dir", BackendCompilationUtilities.createTestDirectory(this.getClass.getSimpleName).toString),
-//        Seq(ChiselGeneratorAnnotation(() => t), CIRCTTargetAnnotation(CIRCTTarget.SystemVerilog))
-//      )
-//      .collectFirst {
-//        case EmittedVerilogCircuitAnnotation(a) => a.value
-//      }
-//      .getOrElse(fail("No Verilog circuit was emitted by the FIRRTL compiler!"))
-//  }
-
-  def elaborateAndGetModule[A <: RawModule](t: => A): A = {
-    var res: Any = null
-    ChiselStage.convert {
-      res = t
-      res.asInstanceOf[A]
-    }
-    res.asInstanceOf[A]
-  }
-
-  /** Compiles a Chisel Module to FIRRTL
-    * NOTE: This uses the "test_run_dir" as the default directory for generated code.
-    * @param t the generator for the module
-    * @return The FIRRTL Circuit and Annotations _before_ FIRRTL compilation
-    */
-//  def getFirrtlAndAnnos(t: => RawModule, providedAnnotations: Seq[Annotation] = Nil): (Circuit, Seq[Annotation]) = {
-//    TestUtils.getChirrtlAndAnnotations(t, providedAnnotations)
-//  }
-}
+/** Spec base class for BDD-style testers. */
+abstract class ChiselFlatSpec extends AnyFlatSpec with Matchers with ChiselSim
 
 /** Spec base class for BDD-style testers. */
-abstract class ChiselFlatSpec extends AnyFlatSpec with ChiselRunners with Matchers
+abstract class ChiselFreeSpec extends AnyFreeSpec with Matchers with ChiselSim
 
 /** Spec base class for BDD-style testers. */
-abstract class ChiselFreeSpec extends AnyFreeSpec with ChiselRunners with Matchers
-
-/** Spec base class for BDD-style testers. */
-abstract class ChiselFunSpec extends AnyFunSpec with ChiselRunners with Matchers
+abstract class ChiselFunSpec extends AnyFunSpec with Matchers with ChiselSim
 
 /** Spec base class for property-based testers. */
-abstract class ChiselPropSpec extends AnyPropSpec with ChiselRunners with ScalaCheckPropertyChecks with Matchers {
+abstract class ChiselPropSpec extends AnyPropSpec with ScalaCheckPropertyChecks with Matchers with ChiselSim {
 
   // Constrain the default number of instances generated for every use of forAll.
   implicit override val generatorDrivenConfig: PropertyCheckConfiguration =

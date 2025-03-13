@@ -3,6 +3,7 @@
 import chisel3.experimental.Analog
 import circt.stage.ChiselStage
 import chisel3._
+import chisel3.simulator.stimulus.RunUntilFinished
 import fixedpoint._
 
 class CrossConnects(inType: Data, outType: Data) extends Module {
@@ -35,8 +36,8 @@ class ConnectSpec extends ChiselPropSpec with Utils {
     }
   }
   property("FixedPoint := FixedPoint should succeed") {
-    assertTesterPasses { new CrossConnectTester(FixedPoint(16.W, 8.BP), FixedPoint(16.W, 8.BP)) }
-    assertTesterPasses { new CrossConnectTester(FixedPoint(2.W, 14.BP), FixedPoint(8.W, 6.BP)) }
+    simulate(new CrossConnectTester(FixedPoint(16.W, 8.BP), FixedPoint(16.W, 8.BP)))(RunUntilFinished(1000))
+    simulate(new CrossConnectTester(FixedPoint(2.W, 14.BP), FixedPoint(8.W, 6.BP)))(RunUntilFinished(1000))
   }
   property("FixedPoint := SInt should fail") {
     intercept[ChiselException] {

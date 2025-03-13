@@ -2,6 +2,7 @@
 
 import chisel3.experimental.VecLiterals._
 import chisel3._
+import chisel3.simulator.stimulus.RunUntilFinished
 import fixedpoint._
 
 import scala.language.reflectiveCalls
@@ -9,7 +10,7 @@ import scala.language.reflectiveCalls
 class VecLiteralSpec extends ChiselFreeSpec with Utils {
   //TODO: decide what behavior here should be
   "This doesn't work should it" ignore {
-    assertTesterPasses {
+    simulate(
       new Module {
         def vecFactory = Vec(2, FixedPoint(8.W, 4.BP))
 
@@ -24,11 +25,11 @@ class VecLiteralSpec extends ChiselFreeSpec with Utils {
         chisel3.assert(vecWire1(1) === (3.25).F(8.W, 4.BP))
         stop()
       }
-    }
+    )(RunUntilFinished(1000))
   }
 
   "partially initialized Vec literals should assign" in {
-    assertTesterPasses {
+    simulate(
       new Module {
         def vecFactory = Vec(2, FixedPoint(8.W, 4.BP))
 
@@ -46,6 +47,6 @@ class VecLiteralSpec extends ChiselFreeSpec with Utils {
         chisel3.assert(vecWire2(1) === (3.25).F(8.W, 4.BP))
         stop()
       }
-    }
+    )(RunUntilFinished(1000))
   }
 }
