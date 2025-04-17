@@ -13,7 +13,7 @@ scalacOptions ++= Seq(
   "-language:reflectiveCalls",
   "-Ymacro-annotations"
 )
-val chiselVersion = "7.0.0-M2+639-5df5515f-SNAPSHOT"
+val chiselVersion = "7.0.0-M2+678-dca5fc11-SNAPSHOT"
 addCompilerPlugin("org.chipsalliance" %% "chisel-plugin" % chiselVersion cross CrossVersion.full)
 libraryDependencies ++= Seq(
   "org.chipsalliance" %% "chisel"          % chiselVersion,

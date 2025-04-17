@@ -1,14 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import _root_.logger.Logger
 import chisel3._
 import chisel3.simulator.scalatest.ChiselSim
 import chisel3.stage.{ChiselGeneratorAnnotation, PrintFullStackTraceAnnotation}
 import circt.stage.{CIRCTTarget, CIRCTTargetAnnotation, ChiselStage}
-//import firrtl.annotations.Annotation
-//import firrtl.ir.Circuit
-//import firrtl.util.BackendCompilationUtilities
-//import firrtl.{AnnotationSeq, EmittedVerilogCircuitAnnotation}
 import org.scalacheck._
 import org.scalatest._
 import org.scalatest.flatspec.AnyFlatSpec
@@ -108,20 +103,6 @@ trait Utils {
     (stdout.toString, stderr.toString, ret)
   }
 
-  /** Run some Scala thunk and return all logged messages as Strings
-    * @param thunk some Scala code
-    * @return a tuple containing LOGGED, and what the thunk returns
-    */
-  def grabLog[T](thunk: => T): (String, T) = {
-    val baos   = new ByteArrayOutputStream()
-    val stream = new PrintStream(baos, true, "utf-8")
-    val ret = Logger.makeScope(Nil) {
-      Logger.setOutput(stream)
-      thunk
-    }
-    (baos.toString, ret)
-  }
-
   /** Encodes a System.exit exit code
     * @param status the exit code
     */
@@ -191,32 +172,6 @@ trait Utils {
 //      System.setSecurityManager(null)
 //    }
 //  }
-
-  /** A tester which runs generator and uses an aspect to check the returned object
-    * @param gen function to generate a Chisel module
-    * @param f a function to check the Chisel module
-    * @tparam T the Chisel module class
-    */
-  def aspectTest[T <: RawModule](gen: () => T)(f: T => Unit)(implicit scalaMajorVersion: Int): Unit = {
-    // Runs chisel stage
-    def run[T <: RawModule](gen: () => T /*, annotations: AnnotationSeq*/ ): Unit /*AnnotationSeq*/ = {
-      new ChiselStage().run(
-        Seq(
-          ChiselGeneratorAnnotation(gen),
-          CIRCTTargetAnnotation(CIRCTTarget.CHIRRTL),
-          PrintFullStackTraceAnnotation
-        ) // ++ annotations
-      )
-    }
-    // Creates a wrapping aspect to contain checking function
-//    case object BuiltAspect extends Aspect[T] {
-//      override def toAnnotation(top: T): AnnotationSeq = { f(top); Nil }
-//    }
-    val currentMajorVersion = scala.util.Properties.versionNumberString.split('.')(1).toInt
-    if (currentMajorVersion >= scalaMajorVersion) {
-      run(gen /*, Seq(BuiltAspect)*/ )
-    }
-  }
 
   /** Run some code and rethrow an exception with a specific type if an exception of that type occurs anywhere in the
     * stack trace.
