@@ -39,7 +39,7 @@ trait HasBinaryPoint {
 
   def binaryPoint: BinaryPoint
 
-  /** Return the [[Double]] value of this instance if it is a Literal
+  /** Return the Double value of this instance if it is a Literal
     *
     * @note this method may throw an exception if the literal value won't fit in a Double
     */
@@ -55,7 +55,7 @@ trait HasBinaryPoint {
     */
   def litToDouble: Double = litToDoubleOption.get
 
-  /** Return the [[BigDecimal]] value of this instance if it is a Literal
+  /** Return the BigDecimal value of this instance if it is a Literal
     *
     * @note this method may throw an exception if the literal value won't fit in a BigDecimal
     */
@@ -67,7 +67,7 @@ trait HasBinaryPoint {
     }
   }
 
-  /** Return the [[BigDecimal]] value of this instance assuming it is a literal (convenience method)
+  /** Return the BigDecimal value of this instance assuming it is a literal (convenience method)
     *
     * @return
     */
