@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import chisel3.experimental.BundleLiterals._
-import chisel3.testers.BasicTester
 import chisel3._
+import chisel3.simulator.stimulus.RunUntilFinished
 import fixedpoint._
 
 class LiteralExtractorSpec extends ChiselFlatSpec {
@@ -41,7 +41,7 @@ class LiteralExtractorSpec extends ChiselFlatSpec {
       NumBP.toDouble(BigInt("1" * 54, 2), 0.BP) // this only works if number takes less than 54 bits
     }
 
-    val bigInt108 = BigInt("1" * 108, 2)
+    val bigInt108  = BigInt("1" * 108, 2)
     val bigDecimal = Num.toBigDecimal(bigInt108, 2)
 
     val bigIntFromBigDecimal = Num.toBigInt(bigDecimal, 2)
@@ -62,7 +62,7 @@ class LiteralExtractorSpec extends ChiselFlatSpec {
       val x = FixedPoint(8.W, 4.BP)
     }
 
-    class LitInsideOutsideTester(outsideLiteral: InsideBundle) extends BasicTester {
+    class LitInsideOutsideTester(outsideLiteral: InsideBundle) extends Module {
       val insideLiteral = (new InsideBundle).Lit(_.x -> 6.125.F(8.W, 4.BP))
 
       // the following errors with "assertion failed"
@@ -80,7 +80,7 @@ class LiteralExtractorSpec extends ChiselFlatSpec {
     }
 
     val outsideLiteral = (new InsideBundle).Lit(_.x -> 6.125.F(8.W, 4.BP))
-    assertTesterPasses { new LitInsideOutsideTester(outsideLiteral) }
+    simulate(new LitInsideOutsideTester(outsideLiteral))(RunUntilFinished(1000))
 
   }
 }

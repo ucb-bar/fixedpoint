@@ -2,7 +2,7 @@
 
 import chisel3._
 import chisel3.experimental.BundleLiterals._
-import chisel3.testers.BasicTester
+import chisel3.simulator.stimulus.RunUntilFinished
 import fixedpoint._
 
 class BundleLiteralSpec extends ChiselFlatSpec with Utils {
@@ -14,21 +14,19 @@ class BundleLiteralSpec extends ChiselFlatSpec with Utils {
   }
 
   "bundle literals" should "pack" in {
-    assertTesterPasses {
-      new BasicTester {
-        val longBundleLit =
-          (new LongBundle).Lit(_.a -> 0xdeaddeadbeefL.U, _.b -> (-0x0beef00dL).S(32.W), _.c -> 4.5.F(16.W, 4.BP))
-        longBundleLit.litOption should equal(
-          Some(
-            (BigInt(0xdeaddeadbeefL) << 48)
-              + (BigInt(0xffffffffL - 0xbeef00dL + 1) << 16)
-              + BigInt(72)
-          )
+    simulate(new Module {
+      val longBundleLit =
+        (new LongBundle).Lit(_.a -> 0xdeaddeadbeefL.U, _.b -> (-0x0beef00dL).S(32.W), _.c -> 4.5.F(16.W, 4.BP))
+      longBundleLit.litOption should equal(
+        Some(
+          (BigInt(0xdeaddeadbeefL) << 48)
+            + (BigInt(0xffffffffL - 0xbeef00dL + 1) << 16)
+            + BigInt(72)
         )
-        chisel3.assert(longBundleLit.asUInt === longBundleLit.litOption.get.U)
+      )
+      chisel3.assert(longBundleLit.asUInt === longBundleLit.litOption.get.U)
 
-        stop()
-      }
-    }
+      stop()
+    })(RunUntilFinished(1000))
   }
 }

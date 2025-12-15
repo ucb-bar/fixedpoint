@@ -1,2 +1,2 @@
-val scalafmtPluginVersion = "2.4.6"
+val scalafmtPluginVersion = "2.5.4"
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % scalafmtPluginVersion)

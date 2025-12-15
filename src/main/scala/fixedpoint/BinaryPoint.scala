@@ -76,33 +76,33 @@ trait HasBinaryPoint {
 
 object BinaryPoint {
   def apply(x: Int): BinaryPoint = KnownBinaryPoint(x)
-  def apply(): BinaryPoint = UnknownBinaryPoint
+  def apply(): BinaryPoint       = UnknownBinaryPoint
 }
 
 sealed abstract class BinaryPoint {
   type W = Int
-  def max(that:              BinaryPoint): BinaryPoint = this.op(that, _ max _)
-  def +(that:                BinaryPoint): BinaryPoint = this.op(that, _ + _)
-  def +(that:                Int):         BinaryPoint = this.op(this, (a, b) => a + that)
-  def shiftRight(that:       Int): BinaryPoint = this.op(this, (a, b) => 0.max(a - that))
+  def max(that: BinaryPoint): BinaryPoint = this.op(that, _ max _)
+  def +(that: BinaryPoint): BinaryPoint   = this.op(that, _ + _)
+  def +(that: Int): BinaryPoint           = this.op(this, (a, b) => a + that)
+  def shiftRight(that: Int): BinaryPoint  = this.op(this, (a, b) => 0.max(a - that))
   def dynamicShiftLeft(that: BinaryPoint): BinaryPoint =
     this.op(that, (a, b) => a + (1 << b) - 1)
 
   def known: Boolean
-  def get:   W
+  def get: W
   protected def op(that: BinaryPoint, f: (W, W) => W): BinaryPoint
 }
 
 case object UnknownBinaryPoint extends BinaryPoint {
-  def known: Boolean = false
-  def get:   Int = None.get
+  def known: Boolean                                     = false
+  def get: Int                                           = None.get
   def op(that: BinaryPoint, f: (W, W) => W): BinaryPoint = this
-  override def toString: String = ""
+  override def toString: String                          = ""
 }
 
 sealed case class KnownBinaryPoint(value: Int) extends BinaryPoint {
   def known: Boolean = true
-  def get:   Int = value
+  def get: Int       = value
   def op(that: BinaryPoint, f: (W, W) => W): BinaryPoint = that match {
     case KnownBinaryPoint(x) => KnownBinaryPoint(f(value, x))
     case _                   => that

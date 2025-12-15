@@ -16,9 +16,9 @@ object Mux extends SourceInfoDoc {
 
 object Mux1H {
   def apply[T <: Data](sel: Seq[Bool], in: Seq[T]): T = chisel3.util.Mux1H(sel, Util.processArgs(in))
-  def apply[T <: Data](in:  Iterable[(Bool, T)]): T = chisel3.util.Mux1H(Util.processArgs(in))
-  def apply[T <: Data](sel: UInt, in: Seq[T]): T = chisel3.util.Mux1H(sel, Util.processArgs(in))
-  def apply(sel:            UInt, in: UInt):   Bool = chisel3.util.Mux1H(sel, in)
+  def apply[T <: Data](in: Iterable[(Bool, T)]): T    = chisel3.util.Mux1H(Util.processArgs(in))
+  def apply[T <: Data](sel: UInt, in: Seq[T]): T      = chisel3.util.Mux1H(sel, Util.processArgs(in))
+  def apply(sel: UInt, in: UInt): Bool                = chisel3.util.Mux1H(sel, in)
 }
 
 ///** Builds a Mux tree under the assumption that multiple select signals
@@ -35,9 +35,9 @@ object Mux1H {
 // * Returns the output of the Mux tree.
 // */
 object PriorityMux {
-  def apply[T <: Data](in:  Seq[(Bool, T)]): T = chisel3.util.PriorityMux(Util.processArgs[Bool, T](in))
+  def apply[T <: Data](in: Seq[(Bool, T)]): T         = chisel3.util.PriorityMux(Util.processArgs[Bool, T](in))
   def apply[T <: Data](sel: Seq[Bool], in: Seq[T]): T = chisel3.util.PriorityMux(sel, Util.processArgs(in))
-  def apply[T <: Data](sel: Bits, in: Seq[T]): T = chisel3.util.PriorityMux(sel, in)
+  def apply[T <: Data](sel: Bits, in: Seq[T]): T      = chisel3.util.PriorityMux(sel, in)
 }
 
 ///** Creates a cascade of n Muxs to search for a key value.

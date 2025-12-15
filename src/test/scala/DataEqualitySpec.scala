@@ -2,7 +2,7 @@
 
 import chisel3._
 import chisel3.experimental.BundleLiterals._
-import chisel3.testers.BasicTester
+import chisel3.simulator.stimulus.RunUntilFinished
 import fixedpoint._
 
 class EqualityModule(lhsGen: => Data, rhsGen: => Data) extends Module {
@@ -14,7 +14,7 @@ class EqualityModule(lhsGen: => Data, rhsGen: => Data) extends Module {
   out := lhs === rhs
 }
 
-class EqualityTester(lhsGen: => Data, rhsGen: => Data) extends BasicTester {
+class EqualityTester(lhsGen: => Data, rhsGen: => Data) extends Module {
   val module = Module(new EqualityModule(lhsGen, rhsGen))
 
   assert(module.out)
@@ -40,26 +40,25 @@ class DataEqualitySpec extends ChiselFlatSpec with Utils {
   }
 
   class RuntimeSensitiveBundle(gen: => Bundle) extends Bundle {
-    val a = UInt(8.W)
+    val a         = UInt(8.W)
     val b: Bundle = gen
   }
 
   behavior.of("FixedPoint === FixedPoint")
   it should "pass with equal values" in {
-    assertTesterPasses {
-      new EqualityTester(4.5.F(16.W, 4.BP), 4.5.F(16.W, 4.BP))
-    }
+    simulate(new EqualityTester(4.5.F(16.W, 4.BP), 4.5.F(16.W, 4.BP)))(RunUntilFinished(1000))
   }
   it should "fail with differing values" in {
-    assertTesterFails {
-      new EqualityTester(4.5.F(16.W, 4.BP), 4.6.F(16.W, 4.BP))
+    val e = the[RuntimeException] thrownBy {
+      simulate(new EqualityTester(4.5.F(16.W, 4.BP), 4.6.F(16.W, 4.BP)))(RunUntilFinished(1000))
     }
+    e.getMessage should include("Assertion failed at DataEqualitySpec")
   }
 
   behavior.of("Bundle === Bundle")
   it should "throw a ChiselException with differing runtime types" in {
     (the[ChiselException] thrownBy extractCause[ChiselException] {
-      assertTesterFails {
+      simulate(
         new EqualityTester(
           (new RuntimeSensitiveBundle(new MyBundle)).Lit(
             _.a -> 1.U,
@@ -78,7 +77,7 @@ class DataEqualitySpec extends ChiselFlatSpec with Utils {
             )
           )
         )
-      }
+      )(RunUntilFinished(1000))
     }).getMessage should include("Runtime types differ")
   }
 }

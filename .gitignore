@@ -1,4 +1,5 @@
- out/
+build/
+out/
 generated/
 /lib/firrtl.jar
 .classpath
